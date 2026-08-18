@@ -1,0 +1,6 @@
+{
+  "name": "LokSeva AI - Multilingual Citizen Grievance Platform",
+  "description": "Multilingual civic grievance platform with dedicated portals for citizens (status tracking, live repair feed), department officers (scoped queues, work updates), and state-level administration.",
+  "requestFramePermissions": ["microphone", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
