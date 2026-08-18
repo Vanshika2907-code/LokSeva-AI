@@ -314,16 +314,7 @@ export const ThreeDIntro: React.FC<ThreeDIntroProps> = ({ onEnterGate }) => {
           </div>
         </div>
 
-        {/* Quick Skip to Portals */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => onEnterGate()}
-            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white text-xs font-bold transition-all border border-white/15 backdrop-blur-md flex items-center gap-2 cursor-pointer"
-          >
-            <span>Skip to Login</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+
       </header>
 
       {/* Hero 3D Perspective Floating Centerpiece */}
@@ -420,7 +411,7 @@ export const ThreeDIntro: React.FC<ThreeDIntroProps> = ({ onEnterGate }) => {
               01 • Citizen Portal
             </span>
             <h3 className="text-lg font-bold text-white mt-1 group-hover:text-blue-300 transition-colors">
-              नागरिक पोर्टल
+              Citizen Portal
             </h3>
             <p className="text-xs text-slate-400 mt-1.5 line-clamp-2">
               File voice & photo complaints in 22 languages with instant SLA tracking.
@@ -443,7 +434,7 @@ export const ThreeDIntro: React.FC<ThreeDIntroProps> = ({ onEnterGate }) => {
               02 • Officer Console
             </span>
             <h3 className="text-lg font-bold text-white mt-1 group-hover:text-amber-300 transition-colors">
-              अधिकारी पोर्टल
+              Officer Portal
             </h3>
             <p className="text-xs text-slate-400 mt-1.5 line-clamp-2">
               10 Municipal Department queues with AI triage & rapid resolution co-pilot.
@@ -466,7 +457,7 @@ export const ThreeDIntro: React.FC<ThreeDIntroProps> = ({ onEnterGate }) => {
               03 • State & Apex Admin
             </span>
             <h3 className="text-lg font-bold text-white mt-1 group-hover:text-emerald-300 transition-colors">
-              प्रशासक कमान
+              Admin Command
             </h3>
             <p className="text-xs text-slate-400 mt-1.5 line-clamp-2">
               Cross-department heatmap analytics, escalation alerts & policy command.
@@ -478,37 +469,12 @@ export const ThreeDIntro: React.FC<ThreeDIntroProps> = ({ onEnterGate }) => {
           </div>
         </div>
 
-        {/* Master Action Button */}
-        <div className="mt-8">
-          <button
-            onClick={() => onEnterGate()}
-            className="px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-blue-600 to-emerald-600 hover:from-amber-400 hover:via-blue-500 hover:to-emerald-500 text-white font-bold text-sm sm:text-base shadow-2xl shadow-blue-500/40 hover:shadow-blue-500/60 transition-all transform hover:scale-105 flex items-center gap-3 cursor-pointer border border-white/20"
-          >
-            <Sparkles className="w-5 h-5 text-amber-300 animate-spin" />
-            <span>Enter LokSeva Portal Gateway</span>
-            <ArrowRight className="w-5 h-5" />
-          </button>
-        </div>
+
 
       </main>
 
-      {/* Footer Metrics */}
+      {/* Footer */}
       <footer className="relative z-10 w-full max-w-7xl mx-auto px-6 py-6 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-slate-300 font-medium">National SLA Redressal Rate: <strong>94.2%</strong></span>
-          </div>
-          <div className="hidden sm:flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
-            <span className="text-slate-300 font-medium">10 Municipal Departments Active</span>
-          </div>
-          <div className="hidden md:flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-            <span className="text-slate-300 font-medium">22 Scheduled Languages Supported</span>
-          </div>
-        </div>
-
         <p className="text-[11px] text-slate-500">
           Compliant with DARPG CPGRAMS & Digital India Standards • 2026
         </p>
