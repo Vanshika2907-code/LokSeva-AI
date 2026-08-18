@@ -40,12 +40,16 @@ function getMailTransporter() {
       ? nodemailer.createTransport({
           service: 'gmail',
           auth: { user, pass },
+          connectionTimeout: 10000,
+          socketTimeout: 10000,
         })
       : nodemailer.createTransport({
           host,
           port,
           secure: port === 465,
           auth: { user, pass },
+          connectionTimeout: 10000,
+          socketTimeout: 10000,
         });
 
     return {
