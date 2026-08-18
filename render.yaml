@@ -3,8 +3,7 @@ services:
     name: lokseva-ai
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npx tsx server.ts
+    dockerfilePath: Dockerfile
     envVars:
       - key: NODE_ENV
         value: production
