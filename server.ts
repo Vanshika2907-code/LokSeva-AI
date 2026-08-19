@@ -6,6 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { GoogleGenAI, Type } from '@google/genai';
 import { INITIAL_COMPLAINTS, CURRENT_OFFICERS } from './src/data/seedData';
 import { Complaint, AIAnalysisResult, ComplaintStatus, ComplaintPriority, DepartmentName, ComplaintCategory } from './src/types';
@@ -762,7 +763,31 @@ app.post('/api/auth/send-email-otp', async (req: Request, res: Response) => {
     }
   }
 
-  // 3. Try Nodemailer Gmail / SMTP (if configured)
+  // 3. Try Resend (HTTP-based, works on Render)
+  if (!emailDispatched && process.env.RESEND_API_KEY) {
+    try {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const { data, error } = await resend.emails.send({
+        from: 'LokSeva Portal <onboarding@resend.dev>',
+        to: [cleanEmail],
+        subject: emailSubject,
+        html: htmlContent,
+        text: plainText,
+      });
+      if (error) {
+        console.error('[Email OTP] Resend error:', error);
+      } else {
+        emailDispatched = true;
+        providerUsed = 'Resend';
+        deliveryDetails = `Email dispatched via Resend: ${data?.id}`;
+        console.log(`[Email OTP] Sent via Resend to ${cleanEmail}: ${data?.id}`);
+      }
+    } catch (resendErr: any) {
+      console.error('[Email OTP] Resend exception:', resendErr?.message);
+    }
+  }
+
+  // 4. Try Nodemailer Gmail / SMTP (if configured)
   if (!emailDispatched) {
     const mailConfig = getMailTransporter();
     if (mailConfig.transporter) {
