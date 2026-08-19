@@ -168,7 +168,6 @@ export const App: React.FC = () => {
         complaints={complaints}
         selectedState={selectedState}
         onLoginSuccess={handleLoginSuccess}
-        onReplay3DIntro={() => setShow3DIntro(true)}
         initialPortal={initialLoginPortal}
       />
     );

@@ -32,7 +32,6 @@ import {
   Send, 
   CheckCircle2, 
   AlertCircle, 
-  Sparkles, 
   ArrowRight, 
   Eye, 
   EyeOff, 
@@ -62,7 +61,6 @@ interface HomePageProps {
   complaints: Complaint[];
   selectedState: IndianState;
   onLoginSuccess: (user: UserProfile) => void;
-  onReplay3DIntro: () => void;
   initialPortal?: 'citizen' | 'officer' | 'admin';
 }
 
@@ -71,7 +69,6 @@ export const HomePage: React.FC<HomePageProps> = ({
   complaints,
   selectedState,
   onLoginSuccess,
-  onReplay3DIntro,
   initialPortal = 'citizen'
 }) => {
   const [activePortalTab, setActivePortalTab] = useState<'citizen' | 'officer' | 'admin'>(initialPortal);
@@ -544,18 +541,6 @@ export const HomePage: React.FC<HomePageProps> = ({
                 National Public Grievance Redressal & Governance Portal
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Replay 3D Intro Button */}
-            <button
-              onClick={onReplay3DIntro}
-              className="px-3.5 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-400/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-              title="Experience 3D Holographic Interface"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              <span>3D Experience</span>
-            </button>
           </div>
         </div>
       </header>
