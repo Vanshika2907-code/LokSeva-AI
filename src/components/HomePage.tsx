@@ -105,9 +105,9 @@ export const HomePage: React.FC<HomePageProps> = ({
   // OFFICER AUTH STATE
   // ==========================================
   const [selectedDeptIndex, setSelectedDeptIndex] = useState(0);
-  const [officerBadgeId, setOfficerBadgeId] = useState(DEPARTMENT_OFFICER_CREDENTIALS[0].badgeId);
-  const [officerEmail, setOfficerEmail] = useState(DEPARTMENT_OFFICER_CREDENTIALS[0].officialEmail);
-  const [officerPassword, setOfficerPassword] = useState(DEPARTMENT_OFFICER_CREDENTIALS[0].password);
+  const [officerBadgeId, setOfficerBadgeId] = useState('');
+  const [officerEmail, setOfficerEmail] = useState('');
+  const [officerPassword, setOfficerPassword] = useState('');
   const [showOfficerPassword, setShowOfficerPassword] = useState(false);
   const [officerDepartment, setOfficerDepartment] = useState<DepartmentName>(DEPARTMENT_OFFICER_CREDENTIALS[0].department);
   const [officerState, setOfficerState] = useState<IndianState>(DEPARTMENT_OFFICER_CREDENTIALS[0].state);
@@ -117,9 +117,9 @@ export const HomePage: React.FC<HomePageProps> = ({
   // ADMIN AUTH STATE
   // ==========================================
   const [adminType, setAdminType] = useState<'state' | 'apex'>('state');
-  const [adminId, setAdminId] = useState(MASTER_ADMIN_CREDENTIAL.adminId);
-  const [adminEmail, setAdminEmail] = useState(MASTER_ADMIN_CREDENTIAL.email);
-  const [adminPassword, setAdminPassword] = useState(MASTER_ADMIN_CREDENTIAL.password);
+  const [adminId, setAdminId] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [adminState, setAdminState] = useState<IndianState>(MASTER_ADMIN_CREDENTIAL.assignedState);
 
@@ -155,31 +155,28 @@ export const HomePage: React.FC<HomePageProps> = ({
     }
   };
 
-  // Sync officer inputs when selecting a different department credential
+  // Select a department without exposing or filling its credentials.
   const handleSelectOfficerPreset = (index: number) => {
     const cred = DEPARTMENT_OFFICER_CREDENTIALS[index];
     setSelectedDeptIndex(index);
-    setOfficerBadgeId(cred.badgeId);
-    setOfficerEmail(cred.officialEmail);
-    setOfficerPassword(cred.password);
+    setOfficerBadgeId('');
+    setOfficerEmail('');
+    setOfficerPassword('');
     setOfficerDepartment(cred.department);
     setOfficerState(cred.state);
     setOfficerCity(cred.city);
     setAuthError(null);
   };
 
-  // Sync admin inputs when selecting State vs Apex Admin
+  // Select an administrator role without exposing or filling credentials.
   const handleSelectAdminPreset = (type: 'state' | 'apex') => {
     setAdminType(type);
+    setAdminId('');
+    setAdminEmail('');
+    setAdminPassword('');
     if (type === 'state') {
-      setAdminId(MASTER_ADMIN_CREDENTIAL.adminId);
-      setAdminEmail(MASTER_ADMIN_CREDENTIAL.email);
-      setAdminPassword(MASTER_ADMIN_CREDENTIAL.password);
       setAdminState(MASTER_ADMIN_CREDENTIAL.assignedState);
     } else {
-      setAdminId(NATIONAL_APEX_ADMIN_CREDENTIAL.adminId);
-      setAdminEmail(NATIONAL_APEX_ADMIN_CREDENTIAL.email);
-      setAdminPassword(NATIONAL_APEX_ADMIN_CREDENTIAL.password);
       setAdminState(NATIONAL_APEX_ADMIN_CREDENTIAL.assignedState);
     }
     setAuthError(null);
@@ -1179,7 +1176,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             {/* Quick Department Presets Selector */}
             <div className="mt-6">
               <label className="text-xs font-bold text-slate-300 block mb-2">
-                Select Department Credential Preset (1-Click Fill):
+                Select Department:
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 max-h-36 overflow-y-auto p-1 bg-slate-900 rounded-xl border border-slate-800">
                 {DEPARTMENT_OFFICER_CREDENTIALS.map((cred, idx) => (
@@ -1194,7 +1191,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     }`}
                   >
                     <div className="font-bold text-[11px] truncate">{cred.departmentCode}</div>
-                    <div className="text-[10px] text-slate-400 truncate">{cred.officerName.split(' ')[0]}</div>
+                    <div className="text-[10px] text-slate-400 truncate">{cred.department}</div>
                   </button>
                 ))}
               </div>
@@ -1232,7 +1229,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <input
                       type="text"
                       required
-                      placeholder="e.g. PWD-KA-4019"
+                      placeholder="Enter your employee ID"
                       value={officerBadgeId}
                       onChange={(e) => setOfficerBadgeId(e.target.value)}
                       className="w-full pl-10 pr-3.5 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-xs font-mono font-bold text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
@@ -1250,7 +1247,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <input
                       type="email"
                       required
-                      placeholder="e.g. rajesh.patil@pwd.karnataka.gov.in"
+                      placeholder="Enter your official email"
                       value={officerEmail}
                       onChange={(e) => setOfficerEmail(e.target.value)}
                       className="w-full pl-10 pr-3.5 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
@@ -1278,7 +1275,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <input
                       type={showOfficerPassword ? 'text' : 'password'}
                       required
-                      placeholder="Enter department password (e.g. Pwd@Roads#9482)"
+                      placeholder="Enter your department password"
                       value={officerPassword}
                       onChange={(e) => setOfficerPassword(e.target.value)}
                       className="w-full pl-10 pr-3.5 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-xs font-mono font-bold text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
@@ -1367,11 +1364,10 @@ export const HomePage: React.FC<HomePageProps> = ({
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs">🏛️ State Grievance Commissioner</span>
-                  <span className="text-[10px] font-mono bg-emerald-950 px-2 py-0.5 rounded text-emerald-300">ADMIN-LOKSEVA-01</span>
+                  <span className="font-bold text-xs">State Grievance Commissioner</span>
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Dr. Shalini Rajneesh, IAS • Karnataka Multi-Department Oversight
+                  State-level multi-department oversight
                 </p>
               </button>
 
@@ -1385,11 +1381,10 @@ export const HomePage: React.FC<HomePageProps> = ({
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs">🇮🇳 Central Apex Directorate (DARPG)</span>
-                  <span className="text-[10px] font-mono bg-emerald-950 px-2 py-0.5 rounded text-emerald-300">APEX-DARPG-99</span>
+                  <span className="font-bold text-xs">Central Apex Directorate</span>
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Director General of Public Grievances • Pan-India Oversight
+                  Pan-India governance oversight
                 </p>
               </button>
             </div>
@@ -1408,7 +1403,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <input
                       type="text"
                       required
-                      placeholder="e.g. ADMIN-LOKSEVA-01"
+                      placeholder="Enter your command ID"
                       value={adminId}
                       onChange={(e) => setAdminId(e.target.value)}
                       className="w-full pl-10 pr-3.5 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-xs font-mono font-bold text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
@@ -1426,7 +1421,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <input
                       type="email"
                       required
-                      placeholder="e.g. admin.lokseva@gov.in"
+                      placeholder="Enter your official email"
                       value={adminEmail}
                       onChange={(e) => setAdminEmail(e.target.value)}
                       className="w-full pl-10 pr-3.5 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
@@ -1454,7 +1449,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <input
                       type={showAdminPassword ? 'text' : 'password'}
                       required
-                      placeholder="Enter master password (e.g. Admin@LokSeva#2026)"
+                      placeholder="Enter your master password"
                       value={adminPassword}
                       onChange={(e) => setAdminPassword(e.target.value)}
                       className="w-full pl-10 pr-3.5 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-xs font-mono font-bold text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
