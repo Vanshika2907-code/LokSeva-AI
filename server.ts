@@ -595,10 +595,11 @@ app.get('/api/auth/email-config-status', (req: Request, res: Response) => {
   const hasSendgrid = Boolean(process.env.SENDGRID_API_KEY);
   const hasGmail = Boolean(process.env.GMAIL_USER && (process.env.GMAIL_APP_PASSWORD || process.env.GMAIL_APP_PASS));
   const hasSmtp = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER);
+  const hasEmailJS = Boolean(process.env.EMAILJS_SERVICE_ID && process.env.EMAILJS_TEMPLATE_ID && process.env.EMAILJS_PUBLIC_KEY);
 
   res.json({
-    isLiveConfigured: mailConfig.isLive || hasResend || hasSendgrid,
-    provider: hasResend ? 'Resend' : hasSendgrid ? 'SendGrid' : hasGmail ? 'Gmail App Password' : hasSmtp ? 'SMTP' : 'Instant Simulator',
+    isLiveConfigured: mailConfig.isLive || hasResend || hasSendgrid || hasEmailJS,
+    provider: hasEmailJS ? 'EmailJS' : hasResend ? 'Resend' : hasSendgrid ? 'SendGrid' : hasGmail ? 'Gmail App Password' : hasSmtp ? 'SMTP' : 'Instant Simulator',
     fromAddress: process.env.EMAIL_FROM || mailConfig.from,
     hasGmailConfig: hasGmail,
     hasSmtpConfig: hasSmtp,
@@ -763,7 +764,39 @@ app.post('/api/auth/send-email-otp', async (req: Request, res: Response) => {
     }
   }
 
-  // 3. Try Resend (HTTP-based, works on Render)
+  // 3. Try EmailJS (HTTP-based, works everywhere)
+  if (!emailDispatched && process.env.EMAILJS_SERVICE_ID && process.env.EMAILJS_TEMPLATE_ID && process.env.EMAILJS_PUBLIC_KEY) {
+    try {
+      const emailjsRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_id: process.env.EMAILJS_SERVICE_ID,
+          template_id: process.env.EMAILJS_TEMPLATE_ID,
+          user_id: process.env.EMAILJS_PUBLIC_KEY,
+          template_params: {
+            email: cleanEmail,
+            to_email: cleanEmail,
+            to_name: name || 'Citizen',
+            otp_code: generatedOtp,
+          },
+        }),
+      });
+      if (emailjsRes.ok) {
+        emailDispatched = true;
+        providerUsed = 'EmailJS';
+        deliveryDetails = `Email dispatched via EmailJS to ${cleanEmail}`;
+        console.log(`[Email OTP] Sent via EmailJS to ${cleanEmail}`);
+      } else {
+        const errText = await emailjsRes.text();
+        console.error('[Email OTP] EmailJS error:', emailjsRes.status, errText);
+      }
+    } catch (emailjsErr: any) {
+      console.error('[Email OTP] EmailJS exception:', emailjsErr?.message);
+    }
+  }
+
+  // 4. Try Resend (HTTP-based, works on Render)
   if (!emailDispatched && process.env.RESEND_API_KEY) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY);
