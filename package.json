@@ -30,6 +30,7 @@
     "react-dom": "^19.0.1",
     "react-leaflet": "^5.0.0",
     "recharts": "^3.10.1",
+    "resend": "^4.0.0",
     "serverless-http": "^4.0.0",
     "three": "^0.185.1",
     "tsx": "^4.21.0",
