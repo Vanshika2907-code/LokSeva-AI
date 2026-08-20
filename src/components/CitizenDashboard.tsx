@@ -101,14 +101,6 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-            <button
-              id="citizen-report-grievance-btn"
-              onClick={onOpenNewGrievance}
-              className="px-6 py-3.5 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{t('submitGrievance', currentLanguage)}</span>
-            </button>
           </div>
         </div>
 

@@ -281,16 +281,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div 
                 className="w-8 h-8 rounded-full bg-[#0b2545] text-white flex items-center justify-center text-xs font-bold shrink-0 border border-slate-300"
               >
-                {user.avatarUrl ? (
-                  <img
-                    src={user.avatarUrl}
-                    alt={user.name || 'User'}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                ) : (
-                  <span>{(user.name || 'U').charAt(0)}</span>
-                )}
+                <span>{(user.name || 'U').charAt(0)}</span>
               </div>
             </div>
 

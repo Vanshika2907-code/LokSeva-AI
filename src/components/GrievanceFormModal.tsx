@@ -76,11 +76,13 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
   const [selectedLocation, setSelectedLocation] = useState(PRESET_LOCATIONS[0]);
   const [customAddress, setCustomAddress] = useState('');
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const recognitionRef = useRef<any>(null);
+  const lastTranscriptIndexRef = useRef<number>(0);
 
   // AI Pipeline State
   const [step, setStep] = useState<'input' | 'analyzing' | 'duplicate_check' | 'ai_confirmation' | 'submitting' | 'success'>('input');
@@ -97,6 +99,18 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
   useEffect(() => {
     setSelectedLanguage(currentLanguage);
   }, [currentLanguage]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setUploadedImageUrl(ev.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = '';
+  };
 
   // Voice Speech-to-Text Setup
   useEffect(() => {
@@ -127,9 +141,10 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
     }
 
     try {
+      lastTranscriptIndexRef.current = 0;
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
-      recognition.interimResults = true;
+      recognition.interimResults = false;
 
       const langObj = SUPPORTED_LANGUAGES.find((l) => l.code === selectedLanguage);
       recognition.lang = langObj ? langObj.speechCode : 'en-IN';
@@ -139,12 +154,20 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
       };
 
       recognition.onresult = (event: any) => {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
+        let newTranscript = '';
+        for (let i = lastTranscriptIndexRef.current; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            newTranscript += event.results[i][0].transcript;
+          }
         }
-        if (transcript) {
-          setDescription((prev) => (prev ? prev + ' ' + transcript : transcript));
+        if (event.results.length > 0) {
+          lastTranscriptIndexRef.current = event.results.length;
+        }
+        if (newTranscript.trim()) {
+          setDescription((prev) => {
+            const trimmed = prev ? prev.trimEnd() : '';
+            return trimmed ? trimmed + ' ' + newTranscript.trim() : newTranscript.trim();
+          });
         }
       };
 
@@ -494,7 +517,6 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
                       <img
                         src={uploadedImageUrl}
                         alt="Evidence"
-                        referrerPolicy="no-referrer"
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -503,13 +525,16 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
                       <button
                         type="button"
-                        onClick={() =>
-                          setUploadedImageUrl(
-                            'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&auto=format&fit=crop&q=80'
-                          )
-                        }
+                        onClick={() => fileInputRef.current?.click()}
                         className="flex-1 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                       >
                         <ImageIcon className="w-3.5 h-3.5 text-blue-600" />

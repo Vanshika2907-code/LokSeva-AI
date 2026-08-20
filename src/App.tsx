@@ -72,6 +72,42 @@ export const App: React.FC = () => {
     loadBackendComplaints();
   }, []);
 
+  // Browser history support — push URL on stage transitions, handle back/forward
+  const stageRef = React.useRef<string>('intro');
+  useEffect(() => {
+    const newStage = show3DIntro ? 'intro' : !isAuthenticated ? 'login' : 'portal';
+    if (newStage !== stageRef.current) {
+      if (show3DIntro) {
+        window.history.pushState({ stage: 'intro' }, '', '/');
+      } else if (!isAuthenticated) {
+        window.history.pushState({ stage: 'login' }, '', '/login');
+      } else {
+        window.history.pushState({ stage: 'portal' }, '', '/portal');
+      }
+      stageRef.current = newStage;
+    } else if (stageRef.current === 'intro') {
+      window.history.replaceState({ stage: 'intro' }, '', '/');
+    }
+  }, [show3DIntro, isAuthenticated]);
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      const state = e.state;
+      if (!state || state.stage === 'intro') {
+        setShow3DIntro(true);
+        setIsAuthenticated(false);
+      } else if (state.stage === 'login') {
+        setShow3DIntro(false);
+        setIsAuthenticated(false);
+      } else if (state.stage === 'portal') {
+        setShow3DIntro(false);
+        setIsAuthenticated(true);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // Handle successful login from Landing Gate
   const handleLoginSuccess = (user: UserProfile) => {
     setCurrentUser(user);
