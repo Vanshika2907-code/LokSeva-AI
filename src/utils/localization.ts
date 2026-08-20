@@ -14,6 +14,21 @@ export const DIGIT_MAPS: Record<LanguageCode, string[]> = {
   en: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
 };
 
+const COMMON_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
+  howCanWeHelp: {
+    kn: 'ಇಂದು ನಾವು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?', hi: 'आज हम आपकी कैसे सहायता कर सकते हैं?', ta: 'இன்று நாங்கள் உங்களுக்கு எப்படி உதவலாம்?',
+    te: 'ఈ రోజు మేము మీకు ఎలా సహాయం చేయலாம்?', ml: 'ഇന്ന് ഞങ്ങൾക്ക് നിങ്ങളെ എങ്ങനെ സഹായിക്കാം?', mr: 'आज आम्ही आपली कशी मदत करू शकतो?',
+    bn: 'আজ আমরা কীভাবে আপনাকে সাহায্য করতে পারি?', gu: 'આજે અમે તમને કેવી રીતે મદદ કરી શકીએ?', en: 'How Can We Help You Today?',
+  },
+  citizenHelpline: {
+    kn: 'ನಾಗರಿಕ ಸಹಾಯವಾಣಿ', hi: 'नागरिक हेल्पलाइन', ta: 'குடிமக்கள் உதவி எண்', te: 'పౌర హెల్ప్‌లైన్',
+    ml: 'പൗര ഹെൽപ്‌ലൈൻ', mr: 'नागरिक हेल्पलाइन', bn: 'নাগরিক হেল্পলাইন', gu: 'નાગરિક હેલ્પલાઇન', en: 'Citizen Helpline',
+  },
+  filterAllDepts: {
+    kn: 'ಎಲ್ಲಾ', hi: 'सभी', ta: 'அனைத்தும்', te: 'అన్నీ', ml: 'എല്ലാം', mr: 'सर्व', bn: 'সব', gu: 'બધા', en: 'All',
+  },
+};
+
 /**
  * Converts any number (e.g. 42 or 98.5) to the target language's native script digits.
  */
@@ -44,7 +59,7 @@ export function localizeDigitsInString(text: string | undefined | null, lang: La
 export function t(key: string, lang: LanguageCode | string = 'en', fallback?: string): string {
   const code = (lang || 'en') as LanguageCode;
   const dict = UI_TRANSLATIONS[code] || UI_TRANSLATIONS.en;
-  const val = dict[key] || UI_TRANSLATIONS.en[key] || fallback || key;
+  const val = dict[key] || COMMON_TRANSLATIONS[key]?.[code] || UI_TRANSLATIONS.en[key] || fallback || key;
   return localizeDigitsInString(val, code);
 }
 
@@ -216,6 +231,10 @@ export function locCategory(cat: string, lang: LanguageCode | string = 'en'): st
 
 // Department Localization Mapping
 export const DEPARTMENT_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
+  'Public Works Department': {
+    kn: 'ಸಾರ್ವಜನಿಕ ಕಾಮಗಾರಿಗಳ ಇಲಾಖೆ', hi: 'लोक निर्माण विभाग', ta: 'பொதுப்பணித் துறை', te: 'ప్రజా పనుల శాఖ',
+    ml: 'പൊതുമരാമത്ത് വകുപ്പ്', mr: 'सार्वजनिक बांधकाम विभाग', bn: 'পূর্ত দপ্তর', gu: 'જાહેર બાંધકામ વિભાગ', en: 'Public Works Department',
+  },
   'Road Maintenance Division': {
     kn: 'ರಸ್ತೆ ನಿರ್ವಹಣಾ ವಿಭಾಗ',
     hi: 'सड़क रखरखाव प्रभाग',
@@ -259,6 +278,34 @@ export const DEPARTMENT_TRANSLATIONS: Record<string, Record<LanguageCode, string
     bn: 'বিদ্যুৎ ও পথবাতি বিভাগ',
     gu: 'વીજળી અને શેરી લાઈટ વિભાગ',
     en: 'Electrical & Streetlighting Dept',
+  },
+  'Electricity Supply Corporation': {
+    kn: 'ವಿದ್ಯುತ್ ಸರಬರಾಜು ನಿಗಮ', hi: 'विद्युत आपूर्ति निगम', ta: 'மின்சார விநியோக நிறுவனம்', te: 'విద్యుత్ సరఫరా సంస్థ',
+    ml: 'വൈദ്യുതി വിതരണ കോർപ്പറേഷൻ', mr: 'वीज पुरवठा महामंडळ', bn: 'বিদ্যুৎ সরবরাহ কর্পোরেশন', gu: 'વીજ પુરવઠા નિગમ', en: 'Electricity Supply Corporation',
+  },
+  'Sanitation & Health Division': {
+    kn: 'ನೈರ್ಮಲ್ಯ ಮತ್ತು ಆರೋಗ್ಯ ವಿಭಾಗ', hi: 'स्वच्छता एवं स्वास्थ्य प्रभाग', ta: 'சுகாதாரம் மற்றும் சுகாதாரப் பிரிவு', te: 'పారిశుధ్య & ఆరోగ్య విభాగం',
+    ml: 'ശുചിത്വ ആരോഗ്യ വിഭാഗം', mr: 'स्वच्छता व आरोग्य विभाग', bn: 'স্যানিটেশন ও স্বাস্থ্য বিভাগ', gu: 'સ્વચ્છતા અને આરોગ્ય વિભાગ', en: 'Sanitation & Health Division',
+  },
+  'Street Lighting Division': {
+    kn: 'ಬೀದಿ ದೀಪಗಳ ವಿಭಾಗ', hi: 'स्ट्रीट लाइटिंग प्रभाग', ta: 'தெருவிளக்குப் பிரிவு', te: 'వీధి దీపాల విభాగం',
+    ml: 'തെരുവ് വിളക്ക് വിഭാഗം', mr: 'पथदिवे विभाग', bn: 'পথবাতি বিভাগ', gu: 'સ્ટ્રીટ લાઇટિંગ વિભાગ', en: 'Street Lighting Division',
+  },
+  'Metropolitan Transport Corporation': {
+    kn: 'ಮಹಾನಗರ ಸಾರಿಗೆ ನಿಗಮ', hi: 'महानगर परिवहन निगम', ta: 'பெருநகர போக்குவரத்துக் கழகம்', te: 'మహానగర రవాణా సంస్థ',
+    ml: 'മെട്രോപൊളിറ്റൻ ഗതാഗത കോർപ്പറേഷൻ', mr: 'महानगर परिवहन महामंडळ', bn: 'মহানগর পরিবহন কর্পোরেশন', gu: 'મહાનગર પરિવહન નિગમ', en: 'Metropolitan Transport Corporation',
+  },
+  'Public Health & Disease Control': {
+    kn: 'ಸಾರ್ವಜನಿಕ ಆರೋಗ್ಯ ಮತ್ತು ರೋಗ ನಿಯಂತ್ರಣ', hi: 'सार्वजनिक स्वास्थ्य एवं रोग नियंत्रण', ta: 'பொது சுகாதாரம் மற்றும் நோய் கட்டுப்பாடு', te: 'ప్రజారోగ్య & వ్యాధి నియంత్రణ',
+    ml: 'പൊതുജനാരോഗ്യവും രോഗ നിയന്ത്രണവും', mr: 'सार्वजनिक आरोग्य व रोग नियंत्रण', bn: 'জনস্বাস্থ্য ও রোগ নিয়ন্ত্রণ', gu: 'જાહેર આરોગ્ય અને રોગ નિયંત્રણ', en: 'Public Health & Disease Control',
+  },
+  'Municipal Stormwater Drainage': {
+    kn: 'ನಗರ ಮಳೆನೀರು ಚರಂಡಿ', hi: 'नगर तूफानी जल निकासी', ta: 'நகர்ப்புற மழைநீர் வடிகால்', te: 'మునిసిపల్ వర్షపు నీటి డ్రైనేజీ',
+    ml: 'മുനിസിപ്പൽ മഴവെള്ള ഡ്രെയിനേജ്', mr: 'महानगर पावसाचे पाणी निचरा', bn: 'পৌর ঝড়ের জল নিষ্কাশন', gu: 'મ્યુનિસિપલ વરસાદી પાણી ડ્રેનેજ', en: 'Municipal Stormwater Drainage',
+  },
+  'Environmental Protection Cell': {
+    kn: 'ಪರಿಸರ ಸಂರಕ್ಷಣಾ ಘಟಕ', hi: 'पर्यावरण संरक्षण प्रकोष्ठ', ta: 'சுற்றுச்சூழல் பாதுகாப்புப் பிரிவு', te: 'పర్యావరణ పరిరక్షణ విభాగం',
+    ml: 'പരിസ്ഥിതി സംരക്ഷണ സെൽ', mr: 'पर्यावरण संरक्षण कक्ष', bn: 'পরিবেশ সুরক্ষা সেল', gu: 'પર્યાવરણ સંરક્ષણ સેલ', en: 'Environmental Protection Cell',
   },
   'Public Health Dept': {
     kn: 'ಸಾರ್ವಜನಿಕ ಆರೋಗ್ಯ ಇಲಾಖೆ',

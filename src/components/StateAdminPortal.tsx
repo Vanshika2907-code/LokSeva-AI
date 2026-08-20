@@ -117,10 +117,10 @@ export const StateAdminPortal: React.FC<StateAdminPortalProps> = ({
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded bg-purple-100 text-purple-900 border border-purple-200">
-                {stateMeta.badge} • State Redressal Command
+                {stateMeta.badge} • {t('adminDashboard', currentLanguage)}
               </span>
               <span className="text-xs text-slate-500 font-medium">
-                Admin: <strong className="text-slate-800 font-bold">{stateAdminProfile.name}</strong> ({stateAdminProfile.designation})
+                {t('roleAdmin', currentLanguage)}: <strong className="text-slate-800 font-bold">{stateAdminProfile.name}</strong> ({stateAdminProfile.designation})
               </span>
             </div>
 
@@ -128,14 +128,14 @@ export const StateAdminPortal: React.FC<StateAdminPortalProps> = ({
               {stateMeta.portalTitle}
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 max-w-2xl font-medium">
-              State-level administrative command overlooking all municipal departments, district triage queues, field progress updates, and SLA resolution compliance across {stateMeta.name}.
+              {t('adminMunicipalAnalytics', currentLanguage)}: {t('deptBreakdown', currentLanguage)} and {t('statsSlaRate', currentLanguage)} across {stateMeta.name}.
             </p>
           </div>
 
           {/* State Switcher Dropdown */}
           <div className="shrink-0 space-y-1.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
             <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide block">
-              Switch State Grievance Portal:
+              {t('switchRole', currentLanguage)}:
             </label>
             <div className="relative">
               <select
@@ -158,25 +158,25 @@ export const StateAdminPortal: React.FC<StateAdminPortalProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 mt-6">
           
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-            <div className="text-xs text-slate-500 font-bold mb-1">Total State Grievances</div>
+            <div className="text-xs text-slate-500 font-bold mb-1">{t('statsTotal', currentLanguage)}</div>
             <div className="text-xl sm:text-2xl font-extrabold text-[#0b2545]">{locNum(totalStateGrievances, currentLanguage)}</div>
             <div className="text-[10px] text-slate-500 font-medium">{stateMeta.name} Jurisdiction</div>
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-            <div className="text-xs text-emerald-800 font-bold mb-1">State Resolution Rate</div>
+            <div className="text-xs text-emerald-800 font-bold mb-1">{t('statsSlaRate', currentLanguage)}</div>
             <div className="text-xl sm:text-2xl font-extrabold text-emerald-700">{locNum(stateResolvedRate, currentLanguage)}%</div>
-            <div className="text-[10px] text-slate-500 font-medium">{locNum(resolvedCount, currentLanguage)} Completed</div>
+            <div className="text-[10px] text-slate-500 font-medium">{locNum(resolvedCount, currentLanguage)} {locStatus('Resolved', currentLanguage)}</div>
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-            <div className="text-xs text-blue-800 font-bold mb-1">Active Work in Progress</div>
+            <div className="text-xs text-blue-800 font-bold mb-1">{t('statsInProgress', currentLanguage)}</div>
             <div className="text-xl sm:text-2xl font-extrabold text-blue-700">{locNum(inProgressCount, currentLanguage)}</div>
-            <div className="text-[10px] text-slate-500 font-medium">Field Crews Dispatched</div>
+            <div className="text-[10px] text-slate-500 font-medium">{t('pendingActionQueue', currentLanguage)}</div>
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-            <div className="text-xs text-rose-800 font-bold mb-1">High Priority Emergencies</div>
+            <div className="text-xs text-rose-800 font-bold mb-1">{t('highPriority', currentLanguage)}</div>
             <div className="text-xl sm:text-2xl font-extrabold text-rose-700">{locNum(highPriorityCount, currentLanguage)}</div>
             <div className="text-[10px] text-slate-500 font-medium">{locNum(48, currentLanguage)}h SLA Window</div>
           </div>
@@ -184,10 +184,10 @@ export const StateAdminPortal: React.FC<StateAdminPortalProps> = ({
           <div className={`p-3.5 rounded-xl border ${slaBreachesCount > 0 ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-200'}`}>
             <div className="text-xs text-amber-800 font-bold mb-1 flex items-center gap-1">
               <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-              <span>SLA Escalations</span>
+              <span>{t('statsEscalated', currentLanguage)}</span>
             </div>
             <div className="text-xl sm:text-2xl font-extrabold text-amber-700">{locNum(slaBreachesCount, currentLanguage)}</div>
-            <div className="text-[10px] text-amber-800/80 font-medium">Requires Executive Action</div>
+            <div className="text-[10px] text-amber-800/80 font-medium">{t('pendingActionQueue', currentLanguage)}</div>
           </div>
 
         </div>
@@ -199,10 +199,10 @@ export const StateAdminPortal: React.FC<StateAdminPortalProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold text-[#0b2545] font-serif">
-              {stateMeta.name} Department Workload & Performance Matrix
+              {stateMeta.name} • {t('deptBreakdown', currentLanguage)}
             </h2>
             <p className="text-xs text-slate-500 font-medium">
-              State monitoring across all municipal agencies operating within {stateMeta.name}
+              {t('adminMunicipalAnalytics', currentLanguage)}: {stateMeta.name}
             </p>
           </div>
           <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">
@@ -235,7 +235,7 @@ export const StateAdminPortal: React.FC<StateAdminPortalProps> = ({
 
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium">
-                    <span>Resolution Rate</span>
+                    <span>{t('statsSlaRate', currentLanguage)}</span>
                     <strong className="text-slate-800">{locNum(percent, currentLanguage)}%</strong>
                   </div>
                   <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
@@ -249,7 +249,7 @@ export const StateAdminPortal: React.FC<StateAdminPortalProps> = ({
                   {data.overdue > 0 && (
                     <div className="text-[10px] text-rose-700 font-bold flex items-center gap-1 pt-0.5">
                       <AlertTriangle className="w-3 h-3 text-rose-600" />
-                      <span>{locNum(data.overdue, currentLanguage)} SLA Breached</span>
+                      <span>{locNum(data.overdue, currentLanguage)} {t('slaBreachedBadge', currentLanguage)}</span>
                     </div>
                   )}
                 </div>
@@ -266,10 +266,10 @@ export const StateAdminPortal: React.FC<StateAdminPortalProps> = ({
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 pb-3 border-b border-slate-100">
           <div>
             <h3 className="text-base font-bold text-[#0b2545] font-serif">
-              {stateMeta.name} Grievance Audit & Work Orders
+              {stateMeta.name} • {t('allPublicGrievances', currentLanguage)}
             </h3>
             <p className="text-xs text-slate-500 font-medium">
-              Showing {locNum(filteredComplaints.length, currentLanguage)} of {locNum(stateComplaints.length, currentLanguage)} grievances registered in {stateMeta.name}
+              {locNum(filteredComplaints.length, currentLanguage)} / {locNum(stateComplaints.length, currentLanguage)} • {stateMeta.name}
             </p>
           </div>
 
@@ -279,7 +279,7 @@ export const StateAdminPortal: React.FC<StateAdminPortalProps> = ({
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search citizen, ward, or keyword..."
+                placeholder={t('searchPlaceholder', currentLanguage)}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
@@ -332,7 +332,7 @@ export const StateAdminPortal: React.FC<StateAdminPortalProps> = ({
                   : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
               }`}
             >
-              ⚠️ Overdue Only
+              ⚠️ {t('slaBreachedBadge', currentLanguage)}
             </button>
           </div>
         </div>

@@ -86,17 +86,17 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           <div className="space-y-2 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-blue-900 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-200">
-                🇮🇳 Citizen Public Redressal Portal
+                🇮🇳 {t('citizenPortal', currentLanguage)}
               </span>
               <span className="text-xs text-slate-500 font-medium">
-                Welcome, <strong className="text-slate-800 font-bold">{currentUser?.name || 'Citizen'}</strong> ({currentUser?.city || 'Bengaluru'}, {currentUser?.state || 'Karnataka'})
+                {t('activeUser', currentLanguage)}: <strong className="text-slate-800 font-bold">{currentUser?.name || t('roleCitizen', currentLanguage)}</strong> ({currentUser?.city || 'Bengaluru'}, {currentUser?.state || 'Karnataka'})
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0b2545] tracking-tight font-serif">
-              {t('howCanWeHelp', currentLanguage) || 'How Can We Help You Today?'}
+              {t('howCanWeHelp', currentLanguage, t('submitGrievance', currentLanguage))}
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-              Submit civic grievances in your native language via voice or text. Track real-time repair work, inspect officer progress logs, and receive automatic SLA escalation notifications.
+              {t('speakOrType', currentLanguage)}
             </p>
           </div>
 
@@ -114,7 +114,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               <Sparkles className="w-4 h-4" />
             </div>
             <h3 className="text-xs font-bold text-slate-900 group-hover:text-blue-900">{t('voiceInput', currentLanguage)}</h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">Submit in any of 9 Indian languages</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">{t('multilingualCenter', currentLanguage)}</p>
           </div>
 
           <div 
@@ -131,7 +131,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             <h3 className="text-xs font-bold text-slate-900 group-hover:text-amber-900">
               {t('myGrievances', currentLanguage)} ({locNum(myCount, currentLanguage)})
             </h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">Track live repair progress & SLA</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">{t('statsInProgress', currentLanguage)} & SLA</p>
           </div>
 
           <div 
@@ -150,7 +150,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               <ShieldCheck className="w-4 h-4" />
             </div>
             <h3 className="text-xs font-bold text-slate-900 group-hover:text-emerald-900">{t('allPublicGrievances', currentLanguage)}</h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">Community neighborhood issues</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">{t('communityHotspots', currentLanguage)}</p>
           </div>
 
           <div 
@@ -159,8 +159,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             <div className="w-8 h-8 rounded-lg bg-slate-200/80 text-slate-800 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform">
               <Building2 className="w-4 h-4" />
             </div>
-            <h3 className="text-xs font-bold text-slate-900">Citizen Helpline</h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">Dial 1916 / 112 (24x7 Toll-Free)</p>
+            <h3 className="text-xs font-bold text-slate-900">{t('citizenHelpline', currentLanguage)}</h3>
+            <p className="text-[11px] text-slate-500 mt-0.5">1916 / 112 (24x7 Toll-Free)</p>
           </div>
         </div>
 

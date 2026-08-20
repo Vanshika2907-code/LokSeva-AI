@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { LanguageCode, UserRole, UserProfile, NavigationTab, IndianState } from '../types';
 import { SUPPORTED_LANGUAGES } from '../data/translations';
-import { t, locNum } from '../utils/localization';
+import { t, locNum, locDepartment } from '../utils/localization';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -60,13 +60,13 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 font-medium tracking-wide text-slate-200">
               <Landmark className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Government Civic Redressal Matrix • National Portal</span>
-              <span className="sm:hidden">Govt. of India • LokSeva AI</span>
+              <span className="hidden sm:inline">{t('appSubtitle', currentLanguage)}</span>
+              <span className="sm:hidden">{t('appTitle', currentLanguage)}</span>
             </div>
             <span className="hidden md:inline text-slate-400">|</span>
             <div className="hidden md:flex items-center gap-1 text-slate-300">
               <PhoneCall className="w-3 h-3 text-emerald-400" />
-              <span>Citizen Helpline: <strong className="text-white">1916 (Toll Free)</strong></span>
+              <span>{t('citizenHelpline', currentLanguage)}: <strong className="text-white">1916 (Toll Free)</strong></span>
             </div>
           </div>
 
@@ -84,7 +84,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={onOpenLanguageModal}
                 className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-900/80 hover:bg-blue-800 text-blue-100 font-bold transition-all text-xs border border-blue-700/60 cursor-pointer shadow-2xs"
-                title="Change Language"
+                title={t('activeLanguage', currentLanguage)}
               >
                 <Globe2 className="w-3.5 h-3.5 text-cyan-300" />
                 <span>{SUPPORTED_LANGUAGES.find(l => l.code === currentLanguage)?.nativeName || 'English'}</span>
@@ -128,18 +128,18 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'bg-emerald-50 text-emerald-900 border-emerald-200'
                 }`}>
                   {currentRole === 'citizen' 
-                    ? 'Citizen Portal' 
+                    ? t('citizenPortal', currentLanguage)
                     : currentRole === 'officer' 
-                    ? `${user.department || 'Officer'} Console` 
-                    : 'State Admin Command'}
+                    ? `${locDepartment(user.department || 'Public Works Department', currentLanguage)} ${t('officerPortal', currentLanguage)}`
+                    : t('adminDashboard', currentLanguage)}
                 </span>
               </div>
               <p className="text-xs text-slate-500 hidden sm:block truncate max-w-xs md:max-w-md font-medium">
                 {currentRole === 'citizen' 
-                  ? 'File & track municipal grievances in 22 official languages' 
+                  ? t('appSubtitle', currentLanguage)
                   : currentRole === 'officer' 
-                  ? `Authorized Department Queue • ${user.city || 'Bengaluru'}` 
-                  : 'State & National Multi-Department SLA Governance'}
+                  ? `${t('assignedDept', currentLanguage)} • ${user.city || 'Bengaluru'}`
+                  : t('adminMunicipalAnalytics', currentLanguage)}
               </p>
             </div>
           </div>
@@ -159,7 +159,7 @@ export const Header: React.FC<HeaderProps> = ({
                   }`}
                 >
                   <FileText className="w-3.5 h-3.5" />
-                  <span>My Grievances & Dashboard</span>
+                  <span>{t('myGrievances', currentLanguage)}</span>
                 </button>
 
                 <button
@@ -171,7 +171,7 @@ export const Header: React.FC<HeaderProps> = ({
                   }`}
                 >
                   <MapPin className="w-3.5 h-3.5" />
-                  <span>Neighborhood Map</span>
+                  <span>{t('mapView', currentLanguage)}</span>
                 </button>
               </>
             )}
@@ -188,7 +188,7 @@ export const Header: React.FC<HeaderProps> = ({
                   }`}
                 >
                   <Briefcase className="w-3.5 h-3.5" />
-                  <span>Department Queue ({user.department || 'All'})</span>
+                  <span>{t('assignedDept', currentLanguage)} ({locDepartment(user.department || 'Public Works Department', currentLanguage)})</span>
                 </button>
 
                 <button
@@ -200,7 +200,7 @@ export const Header: React.FC<HeaderProps> = ({
                   }`}
                 >
                   <MapPin className="w-3.5 h-3.5" />
-                  <span>Ward GIS Map</span>
+                  <span>{t('gisMap', currentLanguage)}</span>
                 </button>
               </>
             )}
@@ -217,7 +217,7 @@ export const Header: React.FC<HeaderProps> = ({
                   }`}
                 >
                   <Landmark className="w-3.5 h-3.5" />
-                  <span>State Command Overview</span>
+                  <span>{t('adminDashboard', currentLanguage)}</span>
                 </button>
 
                 <button
@@ -229,7 +229,7 @@ export const Header: React.FC<HeaderProps> = ({
                   }`}
                 >
                   <BarChart3 className="w-3.5 h-3.5" />
-                  <span>Cross-Dept Analytics</span>
+                  <span>{t('deptBreakdown', currentLanguage)}</span>
                 </button>
 
                 <button
@@ -241,7 +241,7 @@ export const Header: React.FC<HeaderProps> = ({
                   }`}
                 >
                   <MapPin className="w-3.5 h-3.5" />
-                  <span>Statewide Heatmap</span>
+                  <span>{t('communityHotspots', currentLanguage)}</span>
                 </button>
               </>
             )}
@@ -259,7 +259,7 @@ export const Header: React.FC<HeaderProps> = ({
                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Submit Grievance</span>
+                <span>{t('submitGrievance', currentLanguage)}</span>
               </button>
             )}
 
@@ -289,10 +289,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onSignOut}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-all cursor-pointer shadow-2xs"
-              title="Sign out and return to the main portal login gateway"
+              title={t('close', currentLanguage)}
             >
               <LogOut className="w-3.5 h-3.5 text-rose-600" />
-              <span className="hidden sm:inline">Exit Portal</span>
+              <span className="hidden sm:inline">{t('switchRole', currentLanguage)}</span>
             </button>
 
           </div>
@@ -306,13 +306,13 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => onTabChange('citizen')}
                 className={`px-3 py-1.5 rounded-lg font-bold whitespace-nowrap cursor-pointer ${activeTab === 'citizen' ? 'bg-[#0b2545] text-white' : 'text-slate-600'}`}
               >
-                🇮🇳 My Grievances
+                🇮🇳 {t('myGrievances', currentLanguage)}
               </button>
               <button
                 onClick={() => onTabChange('map')}
                 className={`px-3 py-1.5 rounded-lg font-bold whitespace-nowrap cursor-pointer ${activeTab === 'map' ? 'bg-[#0b2545] text-white' : 'text-slate-600'}`}
               >
-                🗺️ Neighborhood Map
+                🗺️ {t('mapView', currentLanguage)}
               </button>
             </>
           )}
@@ -323,13 +323,13 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => onTabChange('officer')}
                 className={`px-3 py-1.5 rounded-lg font-bold whitespace-nowrap cursor-pointer ${activeTab === 'officer' ? 'bg-[#0b2545] text-white' : 'text-slate-600'}`}
               >
-                🏢 Department Queue
+                🏢 {t('assignedDept', currentLanguage)}
               </button>
               <button
                 onClick={() => onTabChange('map')}
                 className={`px-3 py-1.5 rounded-lg font-bold whitespace-nowrap cursor-pointer ${activeTab === 'map' ? 'bg-[#0b2545] text-white' : 'text-slate-600'}`}
               >
-                🗺️ Ward GIS Map
+                🗺️ {t('gisMap', currentLanguage)}
               </button>
             </>
           )}
@@ -340,19 +340,19 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => onTabChange('state_portal')}
                 className={`px-3 py-1.5 rounded-lg font-bold whitespace-nowrap cursor-pointer ${activeTab === 'state_portal' ? 'bg-[#0b2545] text-white' : 'text-slate-600'}`}
               >
-                🏛️ State Command
+                🏛️ {t('adminDashboard', currentLanguage)}
               </button>
               <button
                 onClick={() => onTabChange('admin')}
                 className={`px-3 py-1.5 rounded-lg font-bold whitespace-nowrap cursor-pointer ${activeTab === 'admin' ? 'bg-[#0b2545] text-white' : 'text-slate-600'}`}
               >
-                📊 Analytics
+                📊 {t('deptBreakdown', currentLanguage)}
               </button>
               <button
                 onClick={() => onTabChange('map')}
                 className={`px-3 py-1.5 rounded-lg font-bold whitespace-nowrap cursor-pointer ${activeTab === 'map' ? 'bg-[#0b2545] text-white' : 'text-slate-600'}`}
               >
-                🗺️ State Map
+                🗺️ {t('mapView', currentLanguage)}
               </button>
             </>
           )}

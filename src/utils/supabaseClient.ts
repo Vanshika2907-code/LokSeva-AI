@@ -61,7 +61,48 @@ export async function sendOTPService(
     throw new Error('Please enter a valid mobile number or email ID.');
   }
 
-  // Generate guaranteed 6-digit numeric OTP
+  // Email OTPs are created and verified only by the server. Keeping a
+  // browser-side fallback for email can make the UI claim an email was sent
+  // when the provider rejected it.
+  if (cleanId.includes('@')) {
+    try {
+      const response = await fetch('/api/auth/send-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanId,
+          portalType,
+          name: userData?.name,
+          purpose,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data.emailSent) {
+        return {
+          success: false,
+          message: data.error || data.message || 'The email OTP could not be delivered. Please check the mail configuration and try again.',
+          simulatedOtp: '',
+        };
+      }
+
+      return {
+        success: true,
+        message: data.message || `Direct OTP email sent to ${cleanId}!`,
+        simulatedOtp: '',
+        emailSent: true,
+      };
+    } catch (apiErr) {
+      console.warn('Server Email OTP endpoint error:', apiErr);
+      return {
+        success: false,
+        message: 'Unable to reach the email OTP service. Please try again.',
+        simulatedOtp: '',
+      };
+    }
+  }
+
+  // Generate guaranteed 6-digit numeric OTP for the non-email fallback flow.
   const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes validity
 
@@ -80,43 +121,6 @@ export async function sendOTPService(
     activeOTPs.set(normId, otpRecord);
     activeOTPs.set(`+91${normId}`, otpRecord);
     activeOTPs.set(`+91 ${normId}`, otpRecord);
-  }
-
-  // If email identifier, call real email OTP delivery server endpoint
-  if (cleanId.includes('@')) {
-    try {
-      const response = await fetch('/api/auth/send-email-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: cleanId,
-          portalType,
-          name: userData?.name,
-          purpose,
-        }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.simulatedOtp) {
-          otpRecord.otp = data.simulatedOtp;
-        }
-        if (data.emailSent) {
-          return {
-            success: true,
-            message: data.message || `Direct OTP email sent to ${cleanId}!`,
-            simulatedOtp: data.simulatedOtp || generatedOtp,
-            emailSent: true,
-          };
-        }
-      } else {
-        const errData = await response.json().catch(() => ({}));
-        if (errData.error) {
-          return { success: false, message: errData.error, simulatedOtp: '' };
-        }
-      }
-    } catch (apiErr) {
-      console.warn('Server Email OTP endpoint error:', apiErr);
-    }
   }
 
   // If live Supabase is configured, attempt sending live network token
@@ -190,17 +194,17 @@ export async function verifyOTPService(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: cleanId, otp: cleanOtp }),
       });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          return {
-            success: true,
-            message: data.message || 'Email OTP verified successfully!',
-          };
-        }
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.success) {
+        return {
+          success: true,
+          message: data.message || 'Email OTP verified successfully!',
+        };
       }
+      return { success: false, message: data.error || 'Invalid or expired email OTP.' };
     } catch (apiErr) {
       console.warn('Server Email verify error:', apiErr);
+      return { success: false, message: 'Unable to verify the email OTP. Please try again.' };
     }
   }
 
