@@ -26,7 +26,6 @@ import { GrievanceMapView } from './components/GrievanceMapView';
 import { GrievanceFormModal } from './components/GrievanceFormModal';
 import { GrievanceDetailModal } from './components/GrievanceDetailModal';
 import { OfficerStatusModal } from './components/OfficerStatusModal';
-import { OfficerAssistantDrawer } from './components/OfficerAssistantDrawer';
 import { FeedbackModal } from './components/FeedbackModal';
 import { MultilingualBar } from './components/MultilingualBar';
 import { LanguageSelectorModal } from './components/LanguageSelectorModal';
@@ -55,7 +54,6 @@ export const App: React.FC = () => {
   const [selectedComplaintDetail, setSelectedComplaintDetail] = useState<Complaint | null>(null);
   const [selectedComplaintForStatus, setSelectedComplaintForStatus] = useState<Complaint | null>(null);
   const [selectedComplaintForFeedback, setSelectedComplaintForFeedback] = useState<Complaint | null>(null);
-  const [isOfficerAssistantOpen, setIsOfficerAssistantOpen] = useState(false);
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
 
   // Load complaints from backend on mount
@@ -280,7 +278,6 @@ export const App: React.FC = () => {
                 currentLanguage={currentLanguage}
                 onSelectComplaint={(c) => setSelectedComplaintDetail(c)}
                 onOpenStatusUpdater={(c) => setSelectedComplaintForStatus(c)}
-                onOpenOfficerAssistant={() => setIsOfficerAssistantOpen(true)}
               />
             )}
 
@@ -364,14 +361,6 @@ export const App: React.FC = () => {
         currentLanguage={currentLanguage}
         onClose={() => setSelectedComplaintForStatus(null)}
         onStatusUpdated={handleComplaintUpdated}
-      />
-
-      {/* 4. Officer AI Assistant Drawer */}
-      <OfficerAssistantDrawer
-        isOpen={isOfficerAssistantOpen}
-        onClose={() => setIsOfficerAssistantOpen(false)}
-        currentUser={currentUser}
-        currentLanguage={currentLanguage}
       />
 
       {/* 5. Citizen Resolution Feedback Modal */}

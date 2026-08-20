@@ -5,7 +5,6 @@ import {
   ShieldAlert, 
   Edit3, 
   Eye, 
-  Bot,
   Building,
   CheckCircle2,
   Clock,
@@ -27,7 +26,6 @@ interface OfficerDashboardProps {
   currentLanguage: LanguageCode;
   onSelectComplaint: (complaint: Complaint) => void;
   onOpenStatusUpdater: (complaint: Complaint) => void;
-  onOpenOfficerAssistant: () => void;
   onSwitchDepartment?: (department: DepartmentName) => void;
 }
 
@@ -37,7 +35,6 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({
   currentLanguage,
   onSelectComplaint,
   onOpenStatusUpdater,
-  onOpenOfficerAssistant,
   onSwitchDepartment,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -103,18 +100,6 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({
             <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl font-medium">
               {t('assignedDept', currentLanguage)}: <strong>{locDepartment(officerDepartment, currentLanguage)}</strong>. {t('pendingActionQueue', currentLanguage)}.
             </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              id="officer-ai-assistant-btn"
-              onClick={onOpenOfficerAssistant}
-              className="px-4 py-2.5 rounded-xl bg-[#0b2545] hover:bg-[#133966] text-white font-bold text-xs shadow-sm flex items-center gap-2 transition-all cursor-pointer"
-            >
-              <Bot className="w-4 h-4 text-amber-400" />
-              <span>{t('askAIChat', currentLanguage)}</span>
-              <span className="px-1.5 py-0.5 bg-blue-900/60 text-blue-200 rounded text-[10px]">Gemini 3.7</span>
-            </button>
           </div>
         </div>
 
