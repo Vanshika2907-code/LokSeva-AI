@@ -837,14 +837,21 @@ app.post('/api/auth/send-email-otp', async (req: Request, res: Response) => {
     }
   }
 
+  if (!emailDispatched) {
+    serverActiveOTPs.delete(cleanEmail);
+    return res.status(503).json({
+      success: false,
+      emailSent: false,
+      error: deliveryDetails || 'The email OTP could not be delivered. Check the server mail configuration and try again.',
+    });
+  }
+
   res.json({
     success: true,
-    emailSent: emailDispatched,
+    emailSent: true,
     email: cleanEmail,
     provider: providerUsed,
-    message: emailDispatched 
-      ? `6-digit OTP code dispatched to ${cleanEmail}! Please check your inbox.`
-      : `Email service not configured. OTP generated for ${cleanEmail}.`,
+    message: `6-digit OTP code dispatched to ${cleanEmail}! Please check your inbox.`,
   });
 });
 
@@ -874,7 +881,7 @@ app.post('/api/auth/verify-email-otp', (req: Request, res: Response) => {
   }
 
   if (stored.otp !== cleanOtp) {
-    return res.status(400).json({ success: false, error: `Invalid OTP code entered. Expected ${stored.otp}.` });
+    return res.status(400).json({ success: false, error: 'Invalid OTP code entered.' });
   }
 
   serverActiveOTPs.delete(cleanEmail);
