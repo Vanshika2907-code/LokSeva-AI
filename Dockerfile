@@ -4,10 +4,9 @@ RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt
 
 WORKDIR /app
 
-COPY package.json ./
-RUN rm -f package-lock.json && npm install
-
 COPY . .
+RUN npm install
+
 RUN npm run build
 
 EXPOSE 5000
