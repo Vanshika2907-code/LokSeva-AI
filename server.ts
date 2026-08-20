@@ -19,6 +19,12 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 
 app.use(express.json({ limit: '10mb' }));
 
+// Used by Render to determine whether the web process is ready to receive
+// requests. It deliberately contains no configuration or credential details.
+app.get('/api/health', (_req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 // In-Memory Server OTP Storage
 interface ServerStoredOTP {
   emailOrPhone: string;
@@ -55,7 +61,7 @@ function getMailTransporter() {
 
     return {
       transporter,
-      from: process.env.SMTP_FROM || `LokSeva Portal <${user}>`,
+      from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `LokSeva Portal <${user}>`,
       isLive: true,
     };
   }
