@@ -695,7 +695,37 @@ app.post('/api/auth/send-email-otp', async (req: Request, res: Response) => {
     </html>
   `;
 
-  // 0. Try Brevo API (highest priority — HTTP-based, works on Render)
+  // 0. Try Brevo SMTP via Nodemailer (highest priority — port 2525 bypasses Render blocks)
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && !emailDispatched) {
+    try {
+      const smtpTransporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '2525', 10),
+        secure: false,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+        connectionTimeout: 15000,
+        socketTimeout: 15000,
+      });
+      const smtpInfo = await smtpTransporter.sendMail({
+        from: process.env.SMTP_FROM || 'LokSeva Portal <willofgod313@gmail.com>',
+        to: cleanEmail,
+        subject: emailSubject,
+        text: plainText,
+        html: htmlContent,
+      });
+      emailDispatched = true;
+      providerUsed = 'Brevo/SMTP';
+      deliveryDetails = `Dispatched via Brevo SMTP to ${cleanEmail}: ${smtpInfo.messageId}`;
+      console.log(`[Email OTP] Sent via Brevo SMTP to ${cleanEmail}: ${smtpInfo.messageId}`);
+    } catch (smtpErr: any) {
+      console.error('[Email OTP] Brevo SMTP error:', smtpErr?.message);
+    }
+  }
+
+  // 0b. Try Brevo API (fallback if SMTP didn't work)
   if (process.env.BREVO_API_KEY && !emailDispatched) {
     try {
       const brevoBody: any = {
