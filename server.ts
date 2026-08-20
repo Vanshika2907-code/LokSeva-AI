@@ -704,9 +704,7 @@ app.post('/api/auth/send-email-otp', async (req: Request, res: Response) => {
           htmlContent: htmlContent,
           textContent: plainText,
         };
-        if (process.env.BREVO_SENDER_EMAIL) {
-          brevoBody.sender = { name: 'LokSeva Portal', email: process.env.BREVO_SENDER_EMAIL };
-        }
+        brevoBody.sender = { name: 'LokSeva Portal', email: process.env.BREVO_SENDER_EMAIL || 'willofgod313@11937060.brevosend.com' };
 
         const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
