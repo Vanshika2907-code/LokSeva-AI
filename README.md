@@ -4,6 +4,31 @@
 
 # Run and deploy your AI Studio app
 
+## Deploy on Netlify
+
+Netlify builds the Vite frontend and runs the existing Express API through a
+serverless function. Browser requests remain unchanged at `/api/*`.
+
+1. Create a Netlify site from this repository. The included `netlify.toml`
+   supplies the build, publish, function, and redirect configuration.
+2. Set `GEMINI_API_KEY` if AI classification and chat should use Gemini.
+3. Set `GMAIL_USER`, `GMAIL_APP_PASSWORD`, and `EMAIL_FROM` as Netlify
+   environment variables for OTP delivery. `GMAIL_APP_PASSWORD` must be a
+   Google App Password, not the normal Gmail account password. Do not commit
+   these values.
+4. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` if Supabase features
+   are enabled. These are embedded into the browser bundle at build time.
+
+When Gmail variables are present, the OTP endpoint uses Nodemailer with
+`smtp.gmail.com` and STARTTLS on port 587 by default. Set
+`EMAIL_PROVIDER=smtp` to force SMTP even if another provider key exists.
+Resend remains supported for existing deployments when explicitly selected
+with `EMAIL_PROVIDER=resend`; it is not required for Netlify.
+
+The deployed endpoint `/api/health` should return `{ "status": "ok" }`. To
+test Gmail after deployment, request an email OTP in the citizen flow and
+confirm the message arrives before entering its six-digit code.
+
 ## Deploy on Render
 
 This project deploys as one Render **Web Service**: Express serves both the

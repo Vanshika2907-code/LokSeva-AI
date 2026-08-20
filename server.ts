@@ -13,7 +13,7 @@ import { Complaint, AIAnalysisResult, ComplaintStatus, ComplaintPriority, Depart
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
+export const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
 app.use(express.json({ limit: '10mb' }));
@@ -647,7 +647,8 @@ app.post('/api/auth/send-email-otp', async (req: Request, res: Response) => {
     ? configuredEmailProvider
     : 'auto';
   const resendOnly = emailProvider === 'resend';
-  const useResend = resendOnly || (emailProvider === 'auto' && Boolean(process.env.RESEND_API_KEY));
+  const hasGmailConfig = Boolean(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
+  const useResend = resendOnly || (emailProvider === 'auto' && !hasGmailConfig && Boolean(process.env.RESEND_API_KEY));
 
   const emailSubject = `🇮🇳 LokSeva Portal Verification Code: ${generatedOtp}`;
   const plainText = `Namaste ${name || 'Citizen'},\n\nYour 6-digit verification OTP to access the LokSeva Grievance Redressal Portal is: ${generatedOtp}\n\nThis OTP is valid for 10 minutes.\nNever share this code with anyone.\n\n— LokSeva Citizen Portal Team`;
@@ -1169,4 +1170,10 @@ async function startServer() {
   });
 }
 
-startServer();
+const isServerlessRuntime = process.env.NETLIFY === 'true'
+  || Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME)
+  || Boolean(process.env.NETLIFY_FUNCTIONS);
+
+if (!isServerlessRuntime) {
+  startServer();
+}
