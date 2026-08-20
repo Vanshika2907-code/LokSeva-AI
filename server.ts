@@ -594,7 +594,6 @@ app.get('/api/auth/email-config-status', (req: Request, res: Response) => {
   const hasResend = Boolean(process.env.RESEND_API_KEY);
   const hasSendgrid = Boolean(process.env.SENDGRID_API_KEY);
   const hasGmail = Boolean(process.env.GMAIL_USER && (process.env.GMAIL_APP_PASSWORD || process.env.GMAIL_APP_PASS));
-  const hasSmtp = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER);
   const hasEmailJS = Boolean(process.env.EMAILJS_SERVICE_ID && process.env.EMAILJS_TEMPLATE_ID && process.env.EMAILJS_PUBLIC_KEY);
   const hasBrevo = Boolean(process.env.BREVO_API_KEY);
   const hasSmtp = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
