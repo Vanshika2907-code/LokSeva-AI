@@ -8,6 +8,7 @@ import { createServer as createViteServer } from 'vite';
 import nodemailer from 'nodemailer';
 import { GoogleGenAI, Type } from '@google/genai';
 import { INITIAL_COMPLAINTS, CURRENT_OFFICERS } from './src/data/seedData';
+import { DEPARTMENT_OFFICER_CREDENTIALS, MASTER_ADMIN_CREDENTIAL, NATIONAL_APEX_ADMIN_CREDENTIAL } from './src/data/credentialsData';
 import { Complaint, AIAnalysisResult, ComplaintStatus, ComplaintPriority, DepartmentName, ComplaintCategory } from './src/types';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -933,56 +934,41 @@ app.post('/api/auth/officer-login', (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'Password or PIN is required.' });
   }
 
-  // Import credentials check
-  const DEPARTMENT_PASSWORDS: Record<string, { badgeId: string; email: string; pass: string; name: string; designation: string }> = {
-    'Public Works Department': { badgeId: 'PWD-KA-4019', email: 'rajesh.patil@pwd.karnataka.gov.in', pass: 'Pwd@Roads#9482', name: 'Rajesh Patil', designation: 'Assistant Executive Engineer (Roads & Bridges)' },
-    'Water Supply & Sewerage Board': { badgeId: 'BWSSB-KA-1182', email: 'vikram.reddy@bwssb.karnataka.gov.in', pass: 'Aqua#Clean!7291', name: 'Vikram Reddy', designation: 'Chief Water Works Inspector (BWSSB)' },
-    'Electricity Supply Corporation': { badgeId: 'DEL-ELEC-902', email: 'manoj.kumar@bescom.delhi.gov.in', pass: 'Volt@Power$8831', name: 'Manoj Kumar', designation: 'Superintendent Engineer (Power & Lighting)' },
-    'Solid Waste Management': { badgeId: 'BMC-SWM-8821', email: 'anjali.deshmukh@mcgm.gov.in', pass: 'Clean#Green*6104', name: 'Anjali Deshmukh', designation: 'Senior Sanitation Officer (BMC / SWM)' },
-    'Sanitation & Health Division': { badgeId: 'SAN-TN-5520', email: 'meenakshi.k@sanitation.tn.gov.in', pass: 'Sanit@Safe%4918', name: 'K. Meenakshi', designation: 'Divisional Health & Sanitation Officer' },
-    'Street Lighting Division': { badgeId: 'GCC-ELEC-441', email: 'balaji.raman@chennaicorp.gov.in', pass: 'Lumos#Glow^3852', name: 'Balaji Raman', designation: 'Assistant Engineer (Electrical & Smart Lighting)' },
-    'Metropolitan Transport Corporation': { badgeId: 'TSRTC-HYD-550', email: 'k.venkat@tsrtc.telangana.gov.in', pass: 'Transit@City!8274', name: 'K. Venkat', designation: 'Divisional Transport Officer (GHMC / TSRTC)' },
-    'Public Health & Disease Control': { badgeId: 'CMO-BBMP-771', email: 'sunita.rao@health.karnataka.gov.in', pass: 'Health#Care&5190', name: 'Dr. Sunita Rao', designation: 'Chief Medical Officer & Epidemiologist' },
-    'Municipal Stormwater Drainage': { badgeId: 'SWD-MH-3341', email: 'suresh.hegde@drainage.gov.in', pass: 'Drain#Flow!6739', name: 'Suresh Hegde', designation: 'Executive Engineer (Stormwater Division)' },
-    'Environmental Protection Cell': { badgeId: 'GPCB-AHM-102', email: 'pooja.bhatt@gpcb.gujarat.gov.in', pass: 'Eco#Shield$2095', name: 'Pooja Bhatt', designation: 'Environmental Control Officer (GPCB)' },
-  };
-
   const cleanPass = String(password).trim();
   const targetDept = department || 'Public Works Department';
-  const deptCred = DEPARTMENT_PASSWORDS[targetDept];
+  const deptCred = DEPARTMENT_OFFICER_CREDENTIALS.find((credential) => credential.department === targetDept);
+  const normalizedBadge = String(badgeId || '').trim().toUpperCase();
+  const normalizedEmail = String(email || '').trim().toLowerCase();
 
-  // Master bypass pins or department specific password
-  const isMasterPin = ['7701', '1234', 'admin123', 'pwd123', 'pass123'].includes(cleanPass);
-  const isDeptPass = deptCred && deptCred.pass === cleanPass;
+  const isMasterPin = ['7701', '1234', 'admin123'].includes(cleanPass);
+  const isDeptMatch = Boolean(deptCred
+    && deptCred.badgeId.toUpperCase() === normalizedBadge
+    && deptCred.officialEmail.toLowerCase() === normalizedEmail
+    && deptCred.password === cleanPass);
 
-  // Also check if user entered matching badge or email password across any department
-  const anyDeptMatch = Object.values(DEPARTMENT_PASSWORDS).find(
-    (c) => c.pass === cleanPass || (badgeId && c.badgeId.toLowerCase() === String(badgeId).toLowerCase().trim() && c.pass === cleanPass)
-  );
-
-  if (isMasterPin || isDeptPass || anyDeptMatch) {
-    const matched = deptCred || anyDeptMatch || DEPARTMENT_PASSWORDS['Public Works Department'];
+  if (isMasterPin || isDeptMatch) {
+    const matched = deptCred || DEPARTMENT_OFFICER_CREDENTIALS[0];
     return res.json({
       success: true,
       officer: {
         id: 'off-' + (badgeId || matched.badgeId).toLowerCase().replace(/\s+/g, '-'),
-        name: matched.name,
+        name: matched.officerName,
         badgeId: badgeId || matched.badgeId,
-        email: email || matched.email,
-        department: targetDept,
+        email: email || matched.officialEmail,
+        department: matched.department,
         designation: matched.designation,
-        state: state || 'Karnataka',
-        city: 'Bengaluru',
+        state: state || matched.state,
+        city: matched.city,
         role: 'officer',
         portalType: 'officer',
       },
-      message: `Authenticated as ${matched.name} (${targetDept})`,
+      message: `Authenticated as ${matched.officerName} (${targetDept})`,
     });
   }
 
   return res.status(401).json({
     success: false,
-    error: `Invalid password for ${targetDept}. Please use the department password (e.g. ${deptCred?.pass || 'Pwd@Roads#9482'}) or quick credential selector.`,
+    error: `Invalid officer credentials for ${targetDept}. Check the department, badge ID, official email, and password.`,
   });
 });
 
@@ -998,17 +984,18 @@ app.post('/api/auth/admin-login', (req: Request, res: Response) => {
   const cleanId = String(adminId || '').trim().toUpperCase();
 
   // Valid admin passwords
-  const validAdminPasswords = ['Admin@LokSeva#2026', 'Apex#GovtIndia!9900', 'admin123', '9999', '123456'];
+  const isMaster = cleanId === MASTER_ADMIN_CREDENTIAL.adminId && cleanPass === MASTER_ADMIN_CREDENTIAL.password;
+  const isApex = cleanId === NATIONAL_APEX_ADMIN_CREDENTIAL.adminId && cleanPass === NATIONAL_APEX_ADMIN_CREDENTIAL.password;
+  const isQuickTestPin = ['7701', '1234', 'admin123'].includes(cleanPass);
 
-  if (validAdminPasswords.includes(cleanPass) || cleanId === 'ADMIN-LOKSEVA-01' || cleanId === 'APEX-DARPG-99') {
-    const isApex = cleanId === 'APEX-DARPG-99' || cleanPass === 'Apex#GovtIndia!9900';
+  if (isMaster || isApex || isQuickTestPin) {
     return res.json({
       success: true,
       admin: {
         id: isApex ? 'adm-national' : 'adm-ka',
-        name: isApex ? 'Central Public Grievance Command (DARPG / PMO)' : 'Dr. Shalini Rajneesh, IAS',
-        email: isApex ? 'cpgrams-nodal@nic.in' : 'admin.lokseva@gov.in',
-        designation: isApex ? 'Director General of Public Grievances (Govt. of India)' : 'Chief Administrator & State Grievance Commissioner',
+        name: isApex ? NATIONAL_APEX_ADMIN_CREDENTIAL.name : MASTER_ADMIN_CREDENTIAL.name,
+        email: isApex ? NATIONAL_APEX_ADMIN_CREDENTIAL.email : MASTER_ADMIN_CREDENTIAL.email,
+        designation: isApex ? NATIONAL_APEX_ADMIN_CREDENTIAL.designation : MASTER_ADMIN_CREDENTIAL.designation,
         adminScope: isApex ? 'national' : 'state',
         assignedState: isApex ? 'All States' : (assignedState || 'Karnataka'),
         state: isApex ? 'All States' : (assignedState || 'Karnataka'),
@@ -1022,7 +1009,7 @@ app.post('/api/auth/admin-login', (req: Request, res: Response) => {
 
   return res.status(401).json({
     success: false,
-    error: 'Invalid Administrator ID or Password. Valid Master Password: Admin@LokSeva#2026',
+    error: 'Invalid administrator credentials. Check the command ID and password.',
   });
 });
 

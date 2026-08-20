@@ -87,7 +87,7 @@ export const PortalAuthModal: React.FC<PortalAuthModalProps> = ({
   const [citizenCity, setCitizenCity] = useState('Bengaluru');
 
   // ==========================================
-  // OFFICER FORM STATES (From official credentials)
+  // OFFICER FORM STATES
   // ==========================================
   const [selectedDept, setSelectedDept] = useState<DepartmentName>(
     currentUser?.department || 'Public Works Department'
@@ -95,9 +95,9 @@ export const PortalAuthModal: React.FC<PortalAuthModalProps> = ({
   const [selectedOfficerState, setSelectedOfficerState] = useState<IndianState>(
     (currentUser?.state as IndianState) || 'Karnataka'
   );
-  const [officerBadgeInput, setOfficerBadgeInput] = useState('PWD-KA-4019');
-  const [officerGovEmail, setOfficerGovEmail] = useState('rajesh.patil@pwd.karnataka.gov.in');
-  const [officerPin, setOfficerPin] = useState('Pwd@Roads#9482');
+  const [officerBadgeInput, setOfficerBadgeInput] = useState('');
+  const [officerGovEmail, setOfficerGovEmail] = useState('');
+  const [officerPin, setOfficerPin] = useState('');
   const [showOfficerPassword, setShowOfficerPassword] = useState(false);
 
   // Officer Registration
@@ -113,8 +113,8 @@ export const PortalAuthModal: React.FC<PortalAuthModalProps> = ({
   // ADMIN FORM STATES
   // ==========================================
   const [selectedAdminState, setSelectedAdminState] = useState<IndianState>('Karnataka');
-  const [adminIdInput, setAdminIdInput] = useState(MASTER_ADMIN_CREDENTIAL.adminId);
-  const [adminPasswordInput, setAdminPasswordInput] = useState(MASTER_ADMIN_CREDENTIAL.password);
+  const [adminIdInput, setAdminIdInput] = useState('');
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [showAdminPassword, setShowAdminPassword] = useState(false);
 
   // Admin Registration
@@ -128,9 +128,6 @@ export const PortalAuthModal: React.FC<PortalAuthModalProps> = ({
   useEffect(() => {
     const cred = DEPARTMENT_OFFICER_CREDENTIALS.find((c) => c.department === selectedDept);
     if (cred) {
-      setOfficerBadgeInput(cred.badgeId);
-      setOfficerGovEmail(cred.officialEmail);
-      setOfficerPin(cred.password);
       if (cred.state) {
         setSelectedOfficerState(cred.state as IndianState);
       }
@@ -356,16 +353,15 @@ export const PortalAuthModal: React.FC<PortalAuthModalProps> = ({
       return;
     }
 
-    // Verify against official department credentials or master PIN
-    const isValid = (
-      enteredPass === activeDeptCredential.password ||
-      enteredPass === '7701' ||
-      enteredPass === '1234' ||
-      enteredPass.length >= 4
-    );
+    const enteredEmail = officerGovEmail.trim().toLowerCase();
+    const isQuickTestPin = ['7701', '1234', 'admin123'].includes(enteredPass);
+    const isOfficialCredential = enteredBadge === activeDeptCredential.badgeId.toUpperCase()
+      && enteredEmail === activeDeptCredential.officialEmail.toLowerCase()
+      && enteredPass === activeDeptCredential.password;
+    const isValid = isQuickTestPin || isOfficialCredential;
 
     if (!isValid) {
-      setAuthError(`Invalid officer password for ${selectedDept}. Please use: ${activeDeptCredential.password}`);
+      setAuthError(`Invalid officer credentials for ${selectedDept}. Check the department, badge ID, official email, and password.`);
       return;
     }
 
@@ -379,7 +375,7 @@ export const PortalAuthModal: React.FC<PortalAuthModalProps> = ({
       portalType: 'officer',
       department: selectedDept,
       designation: activeDeptCredential.designation || matchingOfficer.designation,
-      state: selectedOfficerState,
+      state: activeDeptCredential.state,
       city: activeDeptCredential.city || matchingOfficer.city || 'Bengaluru',
       preferredLanguage: safeLang,
       avatarUrl: matchingOfficer.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
@@ -434,10 +430,10 @@ export const PortalAuthModal: React.FC<PortalAuthModalProps> = ({
 
     const isMaster = enteredId === MASTER_ADMIN_CREDENTIAL.adminId && enteredPass === MASTER_ADMIN_CREDENTIAL.password;
     const isApex = enteredId === NATIONAL_APEX_ADMIN_CREDENTIAL.adminId && enteredPass === NATIONAL_APEX_ADMIN_CREDENTIAL.password;
-    const isUniversal = enteredPass === 'Admin@LokSeva#2026' || enteredPass === '7701' || enteredPass === '1234';
+    const isUniversal = enteredPass === '7701' || enteredPass === '1234' || enteredPass === 'admin123';
 
     if (!isMaster && !isApex && !isUniversal) {
-      setAuthError(`Invalid Admin credentials. For State Admin, use ID: ${MASTER_ADMIN_CREDENTIAL.adminId} and Password: ${MASTER_ADMIN_CREDENTIAL.password}`);
+      setAuthError('Invalid administrator credentials. Check the command ID and password.');
       return;
     }
 
@@ -1059,9 +1055,6 @@ export const PortalAuthModal: React.FC<PortalAuthModalProps> = ({
                         Access your departmental queue to resolve complaints and log repair progress.
                       </p>
                     </div>
-                    <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200">
-                      {activeDeptCredential.badgeId}
-                    </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -1075,7 +1068,7 @@ export const PortalAuthModal: React.FC<PortalAuthModalProps> = ({
                       >
                         {DEPARTMENT_OFFICER_CREDENTIALS.map((cred) => (
                           <option key={cred.department} value={cred.department}>
-                            {cred.department} ({cred.officerName} - {cred.state})
+                            {cred.department}
                           </option>
                         ))}
                       </select>
@@ -1125,28 +1118,6 @@ export const PortalAuthModal: React.FC<PortalAuthModalProps> = ({
                         className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 font-mono"
                       />
                     </div>
-                  </div>
-
-                  {/* Clean Credentials Box */}
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 text-amber-950 font-medium">
-                      <KeyRound className="w-4 h-4 text-amber-800 shrink-0" />
-                      <span>
-                        Officer: <strong>{activeDeptCredential.officerName}</strong> | Password: <code className="font-mono bg-white px-1.5 py-0.5 rounded border border-amber-300 font-bold text-amber-900">{activeDeptCredential.password}</code>
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOfficerBadgeInput(activeDeptCredential.badgeId);
-                        setOfficerGovEmail(activeDeptCredential.officialEmail);
-                        setOfficerPin(activeDeptCredential.password);
-                        setSuccessBanner(`Credentials auto-filled for ${selectedDept}!`);
-                      }}
-                      className="px-3 py-1 bg-amber-800 hover:bg-amber-900 text-white rounded-lg font-bold text-[11px] cursor-pointer shrink-0 transition-colors"
-                    >
-                      Auto-Fill
-                    </button>
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-slate-200">
@@ -1319,27 +1290,6 @@ export const PortalAuthModal: React.FC<PortalAuthModalProps> = ({
                         className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 font-mono"
                       />
                     </div>
-                  </div>
-
-                  {/* Clean Credentials Helper */}
-                  <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 text-purple-950 font-medium">
-                      <KeyRound className="w-4 h-4 text-purple-800 shrink-0" />
-                      <span>
-                        Master Admin ID: <code className="font-mono bg-white px-1.5 py-0.5 rounded border border-purple-300 font-bold text-purple-900">{MASTER_ADMIN_CREDENTIAL.adminId}</code> | Pass: <code className="font-mono bg-white px-1.5 py-0.5 rounded border border-purple-300 font-bold text-purple-900">{MASTER_ADMIN_CREDENTIAL.password}</code>
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAdminIdInput(MASTER_ADMIN_CREDENTIAL.adminId);
-                        setAdminPasswordInput(MASTER_ADMIN_CREDENTIAL.password);
-                        setSuccessBanner('Master Administrator credentials auto-filled!');
-                      }}
-                      className="px-3 py-1 bg-purple-800 hover:bg-purple-900 text-white rounded-lg font-bold text-[11px] cursor-pointer shrink-0 transition-colors"
-                    >
-                      Auto-Fill Admin
-                    </button>
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-slate-200">
