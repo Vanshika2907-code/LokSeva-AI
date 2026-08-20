@@ -599,8 +599,8 @@ app.get('/api/auth/email-config-status', (req: Request, res: Response) => {
   const hasSmtp = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 
   res.json({
-    isLiveConfigured: mailConfig.isLive || hasResend || hasSendgrid || hasEmailJS || hasSmtp,
-    provider: hasSmtp ? 'Brevo/SMTP' : hasBrevo ? 'Brevo' : hasEmailJS ? 'EmailJS' : hasResend ? 'Resend' : hasSendgrid ? 'SendGrid' : hasGmail ? 'Gmail App Password' : 'Instant Simulator',
+    isLiveConfigured: mailConfig.isLive || hasResend || hasSendgrid || hasEmailJS || hasBrevo,
+    provider: hasBrevo ? 'Brevo' : hasEmailJS ? 'EmailJS' : hasResend ? 'Resend' : hasSendgrid ? 'SendGrid' : hasGmail ? 'Gmail App Password' : 'Instant Simulator',
     fromAddress: process.env.EMAIL_FROM || mailConfig.from,
     hasGmailConfig: hasGmail,
     hasSmtpConfig: hasSmtp,
@@ -695,33 +695,41 @@ app.post('/api/auth/send-email-otp', async (req: Request, res: Response) => {
     </html>
   `;
 
-  // 0. Try Brevo SMTP via Nodemailer (highest priority — sends to any email via port 587)
-  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && !emailDispatched) {
+  // 0. Try Brevo API (highest priority — HTTP-based, works on Render)
+  if (process.env.BREVO_API_KEY && !emailDispatched) {
     try {
-      const brevoTransporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || '587', 10),
-        secure: false,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-        connectionTimeout: 15000,
-        socketTimeout: 15000,
+      const brevoBody: any = {
+          to: [{ email: cleanEmail }],
+          subject: emailSubject,
+          htmlContent: htmlContent,
+          textContent: plainText,
+        };
+        if (process.env.BREVO_SENDER_EMAIL) {
+          brevoBody.sender = { name: 'LokSeva Portal', email: process.env.BREVO_SENDER_EMAIL };
+        }
+
+        const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': process.env.BREVO_API_KEY,
+            'Content-Type': 'application/json',
+            'accept': 'application/json',
+          },
+          body: JSON.stringify(brevoBody),
       });
-      const brevoInfo = await brevoTransporter.sendMail({
-        from: process.env.SMTP_FROM || 'LokSeva Portal <noreply@lokseva.gov.in>',
-        to: cleanEmail,
-        subject: emailSubject,
-        text: plainText,
-        html: htmlContent,
-      });
-      emailDispatched = true;
-      providerUsed = 'Brevo/SMTP';
-      deliveryDetails = `Dispatched via Brevo SMTP to ${cleanEmail}: ${brevoInfo.messageId}`;
-      console.log(`[Email OTP] Sent via Brevo SMTP to ${cleanEmail}: ${brevoInfo.messageId}`);
-    } catch (brevoSmtpErr: any) {
-      console.error('[Email OTP] Brevo SMTP error:', brevoSmtpErr?.message);
+
+      if (brevoRes.ok || brevoRes.status === 201) {
+        const brevoData = await brevoRes.json();
+        emailDispatched = true;
+        providerUsed = 'Brevo';
+        deliveryDetails = `Dispatched via Brevo API: ${brevoData?.messageId || 'OK'}`;
+        console.log(`[Email OTP] Sent via Brevo to ${cleanEmail}:`, brevoData?.messageId);
+      } else {
+        const errBody = await brevoRes.text();
+        console.warn('[Email OTP] Brevo error response:', brevoRes.status, errBody);
+      }
+    } catch (brevoErr: any) {
+      console.warn('[Email OTP] Brevo fetch exception:', brevoErr?.message);
     }
   }
 
