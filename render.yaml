@@ -20,11 +20,10 @@ services:
       # is created, but their values are never stored in this repository.
       - key: GEMINI_API_KEY
         sync: false
-      # Free Render web services block outbound SMTP. OTP email is delivered
-      # through Resend's HTTPS API instead.
-      - key: EMAIL_PROVIDER
-        value: resend
-      - key: RESEND_API_KEY
+      # Gmail SMTP delivers OTP email to any recipient.
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
         sync: false
       - key: EMAIL_FROM
         sync: false

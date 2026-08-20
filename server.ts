@@ -593,26 +593,19 @@ app.post('/api/complaints/:id/feedback', (req: Request, res: Response) => {
 });
 
 // =========================================================================
-// REAL EMAIL OTP AUTHENTICATION ENDPOINTS (GMAIL, RESEND, SENDGRID, SMTP)
+// REAL EMAIL OTP AUTHENTICATION ENDPOINTS (GMAIL SMTP)
 // =========================================================================
 
 // Check whether live email providers are configured
 app.get('/api/auth/email-config-status', (req: Request, res: Response) => {
   const mailConfig = getMailTransporter();
-  const hasResend = Boolean(process.env.RESEND_API_KEY);
-  const hasSendgrid = Boolean(process.env.SENDGRID_API_KEY);
   const hasGmail = Boolean(process.env.GMAIL_USER && (process.env.GMAIL_APP_PASSWORD || process.env.GMAIL_APP_PASS));
-  const hasSmtp = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER);
-  const hasEmailJS = Boolean(process.env.EMAILJS_SERVICE_ID && process.env.EMAILJS_TEMPLATE_ID && process.env.EMAILJS_PUBLIC_KEY);
 
   res.json({
-    isLiveConfigured: mailConfig.isLive || hasResend || hasSendgrid || hasEmailJS,
-    provider: hasEmailJS ? 'EmailJS' : hasResend ? 'Resend' : hasSendgrid ? 'SendGrid' : hasGmail ? 'Gmail App Password' : hasSmtp ? 'SMTP' : 'Instant Simulator',
+    isLiveConfigured: mailConfig.isLive,
+    provider: hasGmail ? 'Gmail App Password' : 'Instant Simulator',
     fromAddress: process.env.EMAIL_FROM || mailConfig.from,
     hasGmailConfig: hasGmail,
-    hasSmtpConfig: hasSmtp,
-    hasResendConfig: hasResend,
-    hasSendgridConfig: hasSendgrid,
   });
 });
 
@@ -642,13 +635,6 @@ app.post('/api/auth/send-email-otp', async (req: Request, res: Response) => {
   let emailDispatched = false;
   let providerUsed = 'none';
   let deliveryDetails = '';
-  const configuredEmailProvider = (process.env.EMAIL_PROVIDER || 'auto').trim().toLowerCase();
-  const emailProvider = ['auto', 'resend', 'smtp'].includes(configuredEmailProvider)
-    ? configuredEmailProvider
-    : 'auto';
-  const resendOnly = emailProvider === 'resend';
-  const hasGmailConfig = Boolean(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
-  const useResend = resendOnly || (emailProvider === 'auto' && !hasGmailConfig && Boolean(process.env.RESEND_API_KEY));
 
   const emailSubject = `🇮🇳 LokSeva Portal Verification Code: ${generatedOtp}`;
   const plainText = `Namaste ${name || 'Citizen'},\n\nYour 6-digit verification OTP to access the LokSeva Grievance Redressal Portal is: ${generatedOtp}\n\nThis OTP is valid for 10 minutes.\nNever share this code with anyone.\n\n— LokSeva Citizen Portal Team`;
@@ -709,132 +695,23 @@ app.post('/api/auth/send-email-otp', async (req: Request, res: Response) => {
     </html>
   `;
 
-  // Render free web services cannot open outbound SMTP connections. Resend uses
-  // HTTPS, so it is the production provider selected in render.yaml.
-  if (useResend && !emailDispatched) {
-    if (!process.env.RESEND_API_KEY) {
-      deliveryDetails = 'RESEND_API_KEY is required when EMAIL_PROVIDER=resend.';
-    } else if (!process.env.EMAIL_FROM) {
-      deliveryDetails = 'EMAIL_FROM must be a sender address from a verified Resend domain.';
-    } else {
+  const mailConfig = getMailTransporter();
+  if (mailConfig.transporter) {
     try {
-      const resendRes = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: process.env.EMAIL_FROM || 'LokSeva Portal <onboarding@resend.dev>',
-          to: [cleanEmail],
-          subject: emailSubject,
-          text: plainText,
-          html: htmlContent,
-        }),
+      const info = await mailConfig.transporter.sendMail({
+        from: mailConfig.from,
+        to: cleanEmail,
+        subject: emailSubject,
+        text: plainText,
+        html: htmlContent,
       });
-
-      if (resendRes.ok) {
-        const resendData = await resendRes.json();
-        emailDispatched = true;
-        providerUsed = 'Resend';
-        deliveryDetails = `Dispatched via Resend API: ${resendData?.id || 'OK'}`;
-        console.log(`[Email OTP] Sent real email via Resend to ${cleanEmail}:`, resendData);
-      } else {
-        const errBody = await resendRes.text();
-        console.warn('[Email OTP] Resend API error response:', errBody);
-        deliveryDetails = `Resend API error: ${errBody || resendRes.statusText}`;
-      }
-    } catch (resendErr: any) {
-      console.warn('[Email OTP] Resend fetch exception:', resendErr?.message);
-      deliveryDetails = `Resend API connection issue: ${resendErr?.message || 'Unknown error'}`;
-    }
-    }
-  }
-
-  // 2. Try SendGrid API (if configured)
-  if (!resendOnly && process.env.SENDGRID_API_KEY && !emailDispatched) {
-    try {
-      const sgRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: cleanEmail }] }],
-          from: {
-            email: process.env.EMAIL_FROM || 'noreply@lokseva.gov.in',
-            name: 'LokSeva Grievance Portal',
-          },
-          subject: emailSubject,
-          content: [
-            { type: 'text/plain', value: plainText },
-            { type: 'text/html', value: htmlContent },
-          ],
-        }),
-      });
-
-      if (sgRes.ok || sgRes.status === 202) {
-        emailDispatched = true;
-        providerUsed = 'SendGrid';
-        deliveryDetails = 'Dispatched via SendGrid API';
-        console.log(`[Email OTP] Sent real email via SendGrid to ${cleanEmail}`);
-      } else {
-        const errText = await sgRes.text();
-        console.warn('[Email OTP] SendGrid error response:', errText);
-      }
-    } catch (sgErr: any) {
-      console.warn('[Email OTP] SendGrid fetch exception:', sgErr?.message);
-    }
-  }
-
-  // 3. Try EmailJS (HTTP-based, works everywhere)
-  if (!resendOnly && !emailDispatched && process.env.EMAILJS_SERVICE_ID && process.env.EMAILJS_TEMPLATE_ID && process.env.EMAILJS_PUBLIC_KEY) {
-    try {
-      const emailjs = await import('@emailjs/nodejs');
-      const result = await emailjs.send(
-        process.env.EMAILJS_SERVICE_ID,
-        process.env.EMAILJS_TEMPLATE_ID,
-        {
-          email: cleanEmail,
-          to_email: cleanEmail,
-          to_name: name || 'Citizen',
-          otp_code: generatedOtp,
-        },
-        {
-          publicKey: process.env.EMAILJS_PUBLIC_KEY,
-        }
-      );
       emailDispatched = true;
-      providerUsed = 'EmailJS';
-      deliveryDetails = `Email dispatched via EmailJS to ${cleanEmail}`;
-      console.log(`[Email OTP] Sent via EmailJS to ${cleanEmail}`);
-    } catch (emailjsErr: any) {
-      console.error('[Email OTP] EmailJS error:', emailjsErr?.message || emailjsErr);
-    }
-  }
-
-  // SMTP remains available for local development and paid hosting. It is not
-  // used by Render because EMAIL_PROVIDER is explicitly set to "resend".
-  if (!resendOnly && !emailDispatched) {
-    const mailConfig = getMailTransporter();
-    if (mailConfig.transporter) {
-      try {
-        const info = await mailConfig.transporter.sendMail({
-          from: mailConfig.from,
-          to: cleanEmail,
-          subject: emailSubject,
-          text: plainText,
-          html: htmlContent,
-        });
-        emailDispatched = true;
-        providerUsed = 'Nodemailer/SMTP';
-        deliveryDetails = `Direct email dispatched to ${cleanEmail} via SMTP: ${info.messageId}`;
-        console.log(`[Email OTP] Sent real email to ${cleanEmail}: ${info.messageId}`);
-      } catch (sendErr: any) {
-        console.error('[Email OTP] SMTP send error:', sendErr?.message);
-        deliveryDetails = `SMTP connection issue: ${sendErr?.message}`;
-      }
+      providerUsed = 'Nodemailer/Gmail SMTP';
+      deliveryDetails = `Direct email dispatched to ${cleanEmail} via Gmail SMTP: ${info.messageId}`;
+      console.log(`[Email OTP] Sent real email to ${cleanEmail} via Gmail SMTP: ${info.messageId}`);
+    } catch (sendErr: any) {
+      console.error('[Email OTP] Gmail SMTP send error:', sendErr?.message);
+      deliveryDetails = `Gmail SMTP connection issue: ${sendErr?.message}`;
     }
   }
 

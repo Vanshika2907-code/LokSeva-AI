@@ -19,11 +19,9 @@ serverless function. Browser requests remain unchanged at `/api/*`.
 4. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` if Supabase features
    are enabled. These are embedded into the browser bundle at build time.
 
-When Gmail variables are present, the OTP endpoint uses Nodemailer with
-`smtp.gmail.com` and STARTTLS on port 587 by default. Set
-`EMAIL_PROVIDER=smtp` to force SMTP even if another provider key exists.
-Resend remains supported for existing deployments when explicitly selected
-with `EMAIL_PROVIDER=resend`; it is not required for Netlify.
+The OTP endpoint uses Nodemailer with `smtp.gmail.com` and STARTTLS on port
+587. Gmail recipients do not need to own a domain; the sender account must
+have 2-Step Verification enabled and use a Google App Password.
 
 The deployed endpoint `/api/health` should return `{ "status": "ok" }`. To
 test Gmail after deployment, request an email OTP in the citizen flow and
@@ -39,7 +37,7 @@ the same public URL.
    `render.yaml`.
 2. Supply the prompted variables in Render's environment settings:
    `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `GEMINI_API_KEY`,
-   `RESEND_API_KEY`, and `EMAIL_FROM`.
+   `GMAIL_USER`, `GMAIL_APP_PASSWORD`, and `EMAIL_FROM`.
 3. In Supabase, add the Render public URL to the project's allowed redirect
    URLs if you use Supabase email authentication.
 
@@ -48,20 +46,9 @@ Supabase service-role key with a `VITE_` prefix.
 
 ### OTP email delivery
 
-Render free web services block outbound SMTP ports, including Gmail's 465 and
-587. The Render Blueprint therefore sets `EMAIL_PROVIDER=resend`, which sends
-OTP email through Resend's HTTPS API.
-
-In Render, configure:
-
-1. `RESEND_API_KEY` — a server-side Resend API key.
-2. `EMAIL_FROM` — for example, `LokSeva Portal <otp@your-verified-domain>`.
-   The domain must be verified in Resend before it can send to citizens.
-
-For local Gmail testing, keep `EMAIL_PROVIDER=smtp` with `GMAIL_USER` and
+For local or Render Gmail testing, keep `GMAIL_USER` and
 `GMAIL_APP_PASSWORD` in your uncommitted `.env`. The SMTP defaults are
-`smtp.gmail.com`, port `587`, `SMTP_SECURE=false` (STARTTLS); port `465`
-requires `SMTP_SECURE=true`.
+`smtp.gmail.com`, port `587`, and STARTTLS.
 
 This contains everything you need to run your app locally.
 
