@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs_22"]
+
+[phases.install]
+cmds = ["rm -rf node_modules package-lock.json", "npm install"]
+
+[phases.build]
+cmds = ["vite build"]
+
+[start]
+cmd = "npx tsx server.ts"
