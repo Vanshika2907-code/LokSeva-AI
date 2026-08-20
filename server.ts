@@ -596,10 +596,11 @@ app.get('/api/auth/email-config-status', (req: Request, res: Response) => {
   const hasGmail = Boolean(process.env.GMAIL_USER && (process.env.GMAIL_APP_PASSWORD || process.env.GMAIL_APP_PASS));
   const hasSmtp = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER);
   const hasEmailJS = Boolean(process.env.EMAILJS_SERVICE_ID && process.env.EMAILJS_TEMPLATE_ID && process.env.EMAILJS_PUBLIC_KEY);
+  const hasBrevo = Boolean(process.env.BREVO_API_KEY);
 
   res.json({
-    isLiveConfigured: mailConfig.isLive || hasResend || hasSendgrid || hasEmailJS,
-    provider: hasEmailJS ? 'EmailJS' : hasResend ? 'Resend' : hasSendgrid ? 'SendGrid' : hasGmail ? 'Gmail App Password' : hasSmtp ? 'SMTP' : 'Instant Simulator',
+    isLiveConfigured: mailConfig.isLive || hasResend || hasSendgrid || hasEmailJS || hasBrevo,
+    provider: hasBrevo ? 'Brevo' : hasEmailJS ? 'EmailJS' : hasResend ? 'Resend' : hasSendgrid ? 'SendGrid' : hasGmail ? 'Gmail App Password' : hasSmtp ? 'SMTP' : 'Instant Simulator',
     fromAddress: process.env.EMAIL_FROM || mailConfig.from,
     hasGmailConfig: hasGmail,
     hasSmtpConfig: hasSmtp,
@@ -693,6 +694,40 @@ app.post('/api/auth/send-email-otp', async (req: Request, res: Response) => {
     </body>
     </html>
   `;
+
+  // 0. Try Brevo API (highest priority — works on Render, sends to any email)
+  if (process.env.BREVO_API_KEY && !emailDispatched) {
+    try {
+      const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': process.env.BREVO_API_KEY,
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { name: 'LokSeva Portal', email: process.env.BREVO_SENDER_EMAIL || 'artgod369@gmail.com' },
+          to: [{ email: cleanEmail }],
+          subject: emailSubject,
+          htmlContent: htmlContent,
+          textContent: plainText,
+        }),
+      });
+
+      if (brevoRes.ok || brevoRes.status === 201) {
+        const brevoData = await brevoRes.json();
+        emailDispatched = true;
+        providerUsed = 'Brevo';
+        deliveryDetails = `Dispatched via Brevo API: ${brevoData?.messageId || 'OK'}`;
+        console.log(`[Email OTP] Sent via Brevo to ${cleanEmail}:`, brevoData?.messageId);
+      } else {
+        const errBody = await brevoRes.text();
+        console.warn('[Email OTP] Brevo error response:', brevoRes.status, errBody);
+      }
+    } catch (brevoErr: any) {
+      console.warn('[Email OTP] Brevo fetch exception:', brevoErr?.message);
+    }
+  }
 
   // 1. Try Resend API (if configured)
   if (process.env.RESEND_API_KEY && !emailDispatched) {
