@@ -19,6 +19,8 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 
 app.use(express.json({ limit: '10mb' }));
 
+app.get('/health', (_req, res) => { res.status(200).json({ status: 'ok' }); });
+
 // In-Memory Server OTP Storage
 interface ServerStoredOTP {
   emailOrPhone: string;
