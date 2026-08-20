@@ -314,26 +314,11 @@ export const ThreeDIntro: React.FC<ThreeDIntroProps> = ({ onEnterGate }) => {
           </div>
         </div>
 
-
       </header>
 
       {/* Hero 3D Perspective Floating Centerpiece */}
       <main className="relative z-10 w-full max-w-7xl mx-auto px-6 py-8 flex flex-col items-center justify-center text-center my-auto">
         
-        {/* Kinetic Badge */}
-        <div 
-          style={{
-            transform: `perspective(1000px) rotateX(${mousePos.y * -8}deg) rotateY(${mousePos.x * 8}deg)`,
-            transition: 'transform 0.1s ease-out'
-          }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 via-blue-500/20 to-emerald-500/20 border border-white/20 backdrop-blur-xl shadow-2xl mb-6"
-        >
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-          <span className="text-xs font-mono font-bold tracking-widest text-amber-300 uppercase">
-            Government of India • Ministry of Grievances
-          </span>
-        </div>
-
         {/* 3D Holographic Title */}
         <div
           style={{
