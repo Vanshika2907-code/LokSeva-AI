@@ -32,6 +32,7 @@ import { MultilingualBar } from './components/MultilingualBar';
 import { LanguageSelectorModal } from './components/LanguageSelectorModal';
 
 import { t } from './utils/localization';
+import { getOfficerScopedComplaints } from './utils/officerScope';
 
 export const App: React.FC = () => {
   // 3D Intro & Gateway State
@@ -210,6 +211,10 @@ export const App: React.FC = () => {
   }
 
   // 3. STAGE 3: AUTHENTICATED ISOLATED PORTAL WORKSPACE
+  const officerVisibleComplaints = currentRole === 'officer'
+    ? getOfficerScopedComplaints(complaints, currentUser)
+    : complaints;
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col selection:bg-blue-100 selection:text-blue-900 font-sans antialiased">
       
@@ -270,7 +275,7 @@ export const App: React.FC = () => {
           <>
             {activeTab === 'officer' && (
               <OfficerDashboard
-                complaints={complaints}
+                complaints={officerVisibleComplaints}
                 currentUser={currentUser}
                 currentLanguage={currentLanguage}
                 onSelectComplaint={(c) => setSelectedComplaintDetail(c)}
@@ -281,7 +286,7 @@ export const App: React.FC = () => {
 
             {activeTab === 'map' && (
               <GrievanceMapView
-                complaints={complaints}
+                complaints={officerVisibleComplaints}
                 currentLanguage={currentLanguage}
                 onSelectComplaint={(c) => setSelectedComplaintDetail(c)}
               />

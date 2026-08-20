@@ -75,13 +75,19 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode>(currentLanguage);
   const [selectedLocation, setSelectedLocation] = useState(PRESET_LOCATIONS[0]);
   const [customAddress, setCustomAddress] = useState('');
+  const [customWard, setCustomWard] = useState('');
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [voiceError, setVoiceError] = useState('');
+  const [audioDataUrl, setAudioDataUrl] = useState('');
   const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const lastTranscriptIndexRef = useRef<number>(0);
 
   // AI Pipeline State
@@ -133,18 +139,50 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
     }
   };
 
-  const startVoiceRecording = () => {
+  const startVoiceRecording = async () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('Speech Recognition is not supported by your browser. Please try testing with the quick audio presets below!');
-      return;
-    }
+    setVoiceError('');
+    setAudioDataUrl('');
 
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setVoiceError(t('voiceUnsupported', currentLanguage));
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      audioChunksRef.current = [];
+
+      if (typeof MediaRecorder !== 'undefined') {
+        const recorder = new MediaRecorder(stream);
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) audioChunksRef.current.push(event.data);
+        };
+        recorder.onstop = () => {
+          const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+          const reader = new FileReader();
+          reader.onloadend = () => setAudioDataUrl(String(reader.result || ''));
+          reader.readAsDataURL(blob);
+        };
+        recorder.start();
+        mediaRecorderRef.current = recorder;
+      }
+
+      setIsRecording(true);
+
+      if (!SpeechRecognition && !mediaRecorderRef.current) {
+        setIsRecording(false);
+        mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+        setVoiceError(t('voiceAudioFallback', currentLanguage));
+        return;
+      }
+
       lastTranscriptIndexRef.current = 0;
       const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = false;
+      recognition.continuous = false;
+      recognition.interimResults = true;
 
       const langObj = SUPPORTED_LANGUAGES.find((l) => l.code === selectedLanguage);
       recognition.lang = langObj ? langObj.speechCode : 'en-IN';
@@ -173,11 +211,17 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
 
       recognition.onerror = (err: any) => {
         console.warn('Speech recognition error:', err);
-        setIsRecording(false);
+        const errorKey = err?.error === 'not-allowed' || err?.error === 'service-not-allowed'
+          ? 'voiceAudioFallback'
+          : err?.error === 'no-speech'
+          ? 'voiceAudioFallback'
+          : 'voiceAudioFallback';
+        setVoiceError(t(errorKey, currentLanguage));
+        if (!mediaRecorderRef.current) setIsRecording(false);
       };
 
       recognition.onend = () => {
-        setIsRecording(false);
+        recognitionRef.current = null;
       };
 
       recognition.start();
@@ -185,6 +229,9 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
     } catch (e) {
       console.error('Failed to start speech recognition:', e);
       setIsRecording(false);
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+      setVoiceError(t('voicePermissionDenied', currentLanguage));
     }
   };
 
@@ -193,7 +240,14 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    mediaRecorderRef.current = null;
+    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    mediaStreamRef.current = null;
     setIsRecording(false);
+    setVoiceError('');
   };
 
   const handleApplyPreset = (preset: SampleVoicePreset) => {
@@ -204,17 +258,19 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
     // Find matching preset location
     const matchedLoc = PRESET_LOCATIONS.find((l) => l.address.includes(preset.locationHint.split(',')[0])) || PRESET_LOCATIONS[0];
     setSelectedLocation(matchedLoc);
+    setCustomAddress(matchedLoc.address);
+    setCustomWard(matchedLoc.ward);
   };
 
   // Step 2 & 3: Run AI Classification and Duplicate Checking
   const handleStartAnalysis = async () => {
-    if (!description.trim()) {
+    if (!description.trim() && !audioDataUrl) {
       alert(t('speakOrType', currentLanguage));
       return;
     }
 
     setStep('analyzing');
-    const address = customAddress || selectedLocation.address;
+    const address = customAddress.trim() || selectedLocation.address;
 
     try {
       // 1. Run AI Classification
@@ -223,7 +279,14 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
         languageHint: selectedLanguage,
         locationAddress: address,
         imageBase64: uploadedImageUrl || undefined,
+        audioDataUrl: audioDataUrl || undefined,
       });
+
+      const transcribedText = analysis.transcription?.trim();
+      if (!description.trim() && transcribedText) {
+        setDescription(transcribedText);
+      }
+      const complaintText = description.trim() || transcribedText || '';
 
       setAiAnalysis(analysis);
       setEditedCategory(analysis.category);
@@ -232,9 +295,9 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
 
       // 2. Check for duplicate/similar existing complaints
       const dupCheck = await checkDuplicateGrievanceAPI({
-        text: description,
+        text: complaintText,
         category: analysis.category,
-        location: { address, ward: selectedLocation.ward },
+        location: { address, ward: customWard.trim() || selectedLocation.ward },
       });
 
       if (dupCheck.hasDuplicate && dupCheck.matches.length > 0) {
@@ -254,7 +317,7 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
     if (!aiAnalysis) return;
     setStep('submitting');
 
-    const address = customAddress || selectedLocation.address;
+    const address = customAddress.trim() || selectedLocation.address;
     const finalCategory = isEditingAiResult ? editedCategory : aiAnalysis.category;
     const finalPriority = isEditingAiResult ? editedPriority : aiAnalysis.priority;
     const finalSummary = isEditingAiResult ? editedSummary : aiAnalysis.summary;
@@ -269,7 +332,7 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
       userName: currentUser?.name || 'Citizen',
       userPhone: currentUser?.phone || '+91 98450 00000',
       userEmail: currentUser?.email || 'citizen@example.com',
-      description,
+      description: description || aiAnalysis.transcription || 'Voice grievance submitted by citizen.',
       originalLanguage: selectedLanguage,
       category: finalCategory,
       department: aiAnalysis.department,
@@ -280,7 +343,7 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
         latitude: selectedLocation.lat,
         longitude: selectedLocation.lng,
         address,
-        ward: selectedLocation.ward,
+        ward: customWard.trim() || selectedLocation.ward,
         state: (currentUser?.state as IndianState) || 'Karnataka',
       },
       aiSummary: finalSummary,
@@ -289,17 +352,22 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
       slaDeadline: deadline,
       isSlaBreached: false,
       assignedOfficerName: 'Assigned to Ward Junior Engineer',
-      attachments: uploadedImageUrl
-        ? [
-            {
-              id: 'att-' + Date.now(),
-              complaintId: '',
-              fileUrl: uploadedImageUrl,
-              fileType: 'image',
-              description: 'Citizen evidence photograph',
-            },
-          ]
-        : [],
+      attachments: [
+        ...(uploadedImageUrl ? [{
+          id: 'att-image-' + Date.now(),
+          complaintId: '',
+          fileUrl: uploadedImageUrl,
+          fileType: 'image' as const,
+          description: 'Citizen evidence photograph',
+        }] : []),
+        ...(audioDataUrl ? [{
+          id: 'att-audio-' + Date.now(),
+          complaintId: '',
+          fileUrl: audioDataUrl,
+          fileType: 'audio' as const,
+          description: 'Citizen voice grievance recording',
+        }] : []),
+      ],
       updates: [
         {
           id: 'upd-' + Date.now(),
@@ -330,6 +398,7 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
 
   const handleResetModal = () => {
     setDescription('');
+    setAudioDataUrl('');
     setUploadedImageUrl(null);
     setAiAnalysis(null);
     setSimilarMatches([]);
@@ -466,23 +535,30 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
                       )}
                     </button>
                   </div>
+                  {voiceError && (
+                    <p className="text-xs text-rose-700 font-medium" role="alert">{voiceError}</p>
+                  )}
                 </div>
               </div>
 
               {/* Photo Evidence & Location Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 
-                {/* Location Picker */}
+                {/* Manual location and ward entry with presets as a convenience */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-rose-500" />
-                    {t('location', currentLanguage)} & {t('ward', currentLanguage)}:
+                    {t('location', currentLanguage)} & {t('ward', currentLanguage)}
                   </label>
                   <select
                     value={selectedLocation.address}
                     onChange={(e) => {
                       const found = PRESET_LOCATIONS.find((l) => l.address === e.target.value);
-                      if (found) setSelectedLocation(found);
+                      if (found) {
+                        setSelectedLocation(found);
+                        setCustomAddress(found.address);
+                        setCustomWard(found.ward);
+                      }
                     }}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
                   >
@@ -492,6 +568,20 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
                       </option>
                     ))}
                   </select>
+                  <input
+                    type="text"
+                    value={customAddress}
+                    onChange={(e) => setCustomAddress(e.target.value)}
+                    placeholder={t('manualLocation', currentLanguage)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  />
+                  <input
+                    type="text"
+                    value={customWard}
+                    onChange={(e) => setCustomWard(e.target.value)}
+                    placeholder={t('manualWard', currentLanguage)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  />
                 </div>
 
                 {/* Photo Evidence */}
@@ -552,7 +642,7 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
                   id="start-ai-analysis-btn"
                   type="button"
                   onClick={handleStartAnalysis}
-                  disabled={!description.trim()}
+                  disabled={!description.trim() && !audioDataUrl}
                   className="w-full py-3 rounded-xl bg-[#0b2545] hover:bg-[#133966] text-white font-bold text-sm shadow-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4 text-amber-400" />

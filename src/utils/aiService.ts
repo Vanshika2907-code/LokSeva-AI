@@ -1,9 +1,10 @@
-import { AIAnalysisResult, Complaint, SimilarGrievance } from '../types';
+import { AIAnalysisResult, Complaint, SimilarGrievance, UserProfile } from '../types';
 
 export async function classifyGrievanceAPI(payload: {
   text: string;
   languageHint?: string;
   imageBase64?: string;
+  audioDataUrl?: string;
   locationAddress?: string;
 }): Promise<AIAnalysisResult> {
   try {
@@ -19,6 +20,7 @@ export async function classifyGrievanceAPI(payload: {
     // Fallback heuristic
     return {
       detectedLanguage: payload.languageHint || 'English',
+      transcription: payload.text,
       category: 'Roads & Infrastructure',
       department: 'Public Works Department',
       priority: 'HIGH',
@@ -72,7 +74,7 @@ export async function askCitizenChatbotAPI(payload: {
 
 export async function askOfficerAssistantAPI(payload: {
   question: string;
-  officerDepartment?: string;
+  officerProfile: Pick<UserProfile, 'id' | 'role' | 'department' | 'designation' | 'state' | 'city' | 'assignedState'>;
 }): Promise<{ reply: string; suggestedActions?: string[] }> {
   try {
     const res = await fetch('/api/ai/officer-chat', {

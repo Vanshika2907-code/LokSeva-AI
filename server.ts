@@ -6,15 +6,15 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import nodemailer from 'nodemailer';
-import { Resend } from 'resend';
 import { GoogleGenAI, Type } from '@google/genai';
 import { INITIAL_COMPLAINTS, CURRENT_OFFICERS } from './src/data/seedData';
 import { Complaint, AIAnalysisResult, ComplaintStatus, ComplaintPriority, DepartmentName, ComplaintCategory } from './src/types';
+import { getOfficerScopedComplaints } from './src/utils/officerScope';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
+export const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
 app.use(express.json({ limit: '10mb' }));
@@ -155,14 +155,15 @@ function heuristicClassification(text: string, langHint?: string): AIAnalysisRes
 // 1. AI Classification API
 app.post('/api/ai/classify', async (req: Request, res: Response) => {
   try {
-    const { text, languageHint, imageBase64, locationAddress } = req.body;
-    if (!text || typeof text !== 'string') {
-      return res.status(400).json({ error: 'Text description is required' });
+    const { text, languageHint, imageBase64, audioDataUrl, locationAddress } = req.body;
+    if ((!text || typeof text !== 'string') && !audioDataUrl) {
+      return res.status(400).json({ error: 'Text or voice description is required' });
     }
 
     const ai = getGeminiClient();
     if (!ai) {
-      const fallback = heuristicClassification(text, languageHint);
+      const fallback = heuristicClassification(text || 'Voice grievance submitted by citizen.', languageHint);
+      fallback.transcription = text || '';
       return res.json(fallback);
     }
 
@@ -202,14 +203,26 @@ PRIORITY & SLA CRITERIA:
 Output must be in JSON format matching the schema.`;
 
     const prompt = `Classify this citizen grievance:
-Citizen Input Text: "${text}"
+Citizen Input Text: "${text || 'Voice grievance attached for transcription and classification.'}"
 Language Hint: "${languageHint || 'auto-detect'}"
 Location Info: "${locationAddress || 'Not specified'}"
-${imageBase64 ? '[Citizen has also attached a photo of the incident]' : ''}`;
+${imageBase64 ? '[Citizen has also attached a photo of the incident]' : ''}
+${audioDataUrl ? '[Citizen has attached a voice recording. Transcribe and classify it.]' : ''}`;
+
+    const contents: any[] = [{ text: prompt }];
+    if (audioDataUrl && typeof audioDataUrl === 'string') {
+      const audioParts = audioDataUrl.split(',');
+      contents.push({
+        inlineData: {
+          mimeType: audioParts[0]?.match(/data:(.*?);base64/)?.[1] || 'audio/webm',
+          data: audioParts[1] || audioParts[0],
+        },
+      });
+    }
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.7-flash',
-      contents: prompt,
+      contents,
       config: {
         systemInstruction,
         responseMimeType: 'application/json',
@@ -217,6 +230,7 @@ ${imageBase64 ? '[Citizen has also attached a photo of the incident]' : ''}`;
           type: Type.OBJECT,
           properties: {
             detectedLanguage: { type: Type.STRING, description: 'Language name e.g. Kannada, Hindi, Tamil, English' },
+            transcription: { type: Type.STRING, description: 'Exact transcription of the citizen voice recording, or the input text when no audio is provided' },
             category: { type: Type.STRING, description: 'Must be one of the controlled categories' },
             department: { type: Type.STRING, description: 'Standard department name' },
             priority: { type: Type.STRING, description: 'HIGH, MEDIUM, or LOW' },
@@ -226,7 +240,7 @@ ${imageBase64 ? '[Citizen has also attached a photo of the incident]' : ''}`;
             keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
             sentiment: { type: Type.STRING, description: 'urgent, frustrated, or neutral' },
           },
-          required: ['detectedLanguage', 'category', 'department', 'priority', 'summary', 'confidence', 'slaHours', 'keywords'],
+          required: ['detectedLanguage', 'transcription', 'category', 'department', 'priority', 'summary', 'confidence', 'slaHours', 'keywords'],
         },
       },
     });
@@ -415,13 +429,27 @@ ${complaint.updates.map((u, i) => `  ${i + 1}. [${new Date(u.createdAt).toLocale
 
 // 4. Officer AI Intelligence Assistant API
 app.post('/api/ai/officer-chat', async (req: Request, res: Response) => {
-  try {
-    const { question, officerDepartment } = req.body;
+  const { question, officerProfile } = req.body || {};
+  const cleanQuestion = typeof question === 'string' ? question.trim() : '';
+  const scopedComplaints = officerProfile
+    ? getOfficerScopedComplaints(complaintsDb, officerProfile)
+    : [];
 
-    const complaintsOverview = complaintsDb.map((c) => ({
+  if (!cleanQuestion) {
+    return res.status(400).json({
+      reply: 'Please enter a question about your authorized grievance workload, priorities, trends, or advisories.',
+    });
+  }
+
+  try {
+    const complaintsOverview = scopedComplaints.length > 0
+      ? scopedComplaints.map((c) => ({
       id: c.complaintNumber,
       category: c.category,
       department: c.department,
+      state: c.state,
+      district: c.district,
+      city: c.location.city,
       priority: c.priority,
       status: c.status,
       address: c.location.address,
@@ -430,12 +458,22 @@ app.post('/api/ai/officer-chat', async (req: Request, res: Response) => {
       supporters: c.supportersCount,
       summary: c.aiSummary,
       createdAt: c.createdAt,
-    }));
+      }))
+      : [{
+        scope: 'authorized officer scope',
+        status: 'NO_MATCHING_GRIEVANCES',
+        message: 'No grievances currently match this officer profile. Do not invent complaint IDs, trends, or operational events.',
+      }];
+
+    const activeCount = scopedComplaints.filter((c) => c.status !== 'Resolved').length;
+    const highPriorityCount = scopedComplaints.filter((c) => c.priority === 'HIGH' && c.status !== 'Resolved').length;
+    const breachedCount = scopedComplaints.filter((c) => c.isSlaBreached && c.status !== 'Resolved').length;
+    const fallbackReply = `No Gemini response was available. Authorized records contain ${scopedComplaints.length} grievances: ${activeCount} active, ${highPriorityCount} high priority, and ${breachedCount} with SLA escalation notices.`;
 
     const ai = getGeminiClient();
     if (!ai) {
       return res.json({
-        reply: `Based on active municipal records: There are currently ${complaintsDb.filter((c) => c.status !== 'Resolved').length} active complaints. ${complaintsDb.filter((c) => c.priority === 'HIGH').length} are marked High Priority, and ${complaintsDb.filter((c) => c.isSlaBreached).length} have SLA escalation notices.`,
+        reply: fallbackReply,
         suggestedActions: ['View High Priority List', 'Inspect Overdue Grievances', 'Export Department Report'],
       });
     }
@@ -447,23 +485,43 @@ CURRENT LIVE MUNICIPAL COMPLAINTS DATASET:
 ${JSON.stringify(complaintsOverview, null, 2)}
 
 OFFICER CONTEXT:
-Department: ${officerDepartment || 'City Municipal Administration (All Departments)'}
+${JSON.stringify(officerProfile || {}, null, 2)}
+
+Only use the authorized complaints dataset above. Do not infer access to complaints outside this officer's department or jurisdiction.
 
 GUIDELINES:
 1. Provide crisp, data-driven answers referencing specific Complaint IDs (e.g. GRV-2026-0002) and Wards.
 2. Group related issues when asked about summaries or common complaints.
 3. Highlight high-priority emergencies or SLA breaches requiring immediate executive attention.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.7-flash',
-      contents: question,
-      config: {
-        systemInstruction,
-      },
-    });
+    let response;
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        response = await ai.models.generateContent({
+          model: 'gemini-3.7-flash',
+          contents: cleanQuestion,
+          config: {
+            systemInstruction,
+          },
+        });
+        break;
+      } catch (err) {
+        lastError = err;
+        if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+    }
+
+    if (!response?.text?.trim()) {
+      console.error('Officer chat returned no usable Gemini text:', lastError || 'empty response');
+      return res.json({
+        reply: fallbackReply,
+        suggestedActions: ['View High Priority List', 'Inspect Overdue Grievances', 'Export Department Report'],
+      });
+    }
 
     return res.json({
-      reply: response.text,
+      reply: response.text.trim(),
       suggestedActions: [
         'Filter High Priority Overdue',
         'Summarize Yelahanka Ward Potholes',
@@ -471,9 +529,15 @@ GUIDELINES:
       ],
     });
   } catch (err) {
-    console.error('Officer chat error:', err);
+    console.error('Officer chat error:', {
+      message: err instanceof Error ? err.message : String(err),
+      officerId: officerProfile?.id || 'unknown',
+      department: officerProfile?.department || 'unknown',
+      scopedComplaintCount: scopedComplaints.length,
+    });
     return res.json({
-      reply: 'Unable to query AI officer intelligence at this moment. Please check the analytical charts.',
+      reply: `Officer intelligence fallback: ${scopedComplaints.length} authorized grievances are available for this profile. Review the dashboard for current workload, priority, and SLA details.`,
+      suggestedActions: ['View High Priority List', 'Inspect Overdue Grievances', 'Export Department Report'],
     });
   }
 });
@@ -833,57 +897,7 @@ app.post('/api/auth/send-email-otp', async (req: Request, res: Response) => {
     }
   }
 
-  // 3. Try EmailJS (HTTP-based, works everywhere)
-  if (!emailDispatched && process.env.EMAILJS_SERVICE_ID && process.env.EMAILJS_TEMPLATE_ID && process.env.EMAILJS_PUBLIC_KEY) {
-    try {
-      const emailjs = await import('@emailjs/nodejs');
-      const result = await emailjs.send(
-        process.env.EMAILJS_SERVICE_ID,
-        process.env.EMAILJS_TEMPLATE_ID,
-        {
-          email: cleanEmail,
-          to_email: cleanEmail,
-          to_name: name || 'Citizen',
-          otp_code: generatedOtp,
-        },
-        {
-          publicKey: process.env.EMAILJS_PUBLIC_KEY,
-        }
-      );
-      emailDispatched = true;
-      providerUsed = 'EmailJS';
-      deliveryDetails = `Email dispatched via EmailJS to ${cleanEmail}`;
-      console.log(`[Email OTP] Sent via EmailJS to ${cleanEmail}`);
-    } catch (emailjsErr: any) {
-      console.error('[Email OTP] EmailJS error:', emailjsErr?.message || emailjsErr);
-    }
-  }
-
-  // 4. Try Resend (HTTP-based, works on Render)
-  if (!emailDispatched && process.env.RESEND_API_KEY) {
-    try {
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      const { data, error } = await resend.emails.send({
-        from: 'LokSeva Portal <onboarding@resend.dev>',
-        to: [cleanEmail],
-        subject: emailSubject,
-        html: htmlContent,
-        text: plainText,
-      });
-      if (error) {
-        console.error('[Email OTP] Resend error:', error);
-      } else {
-        emailDispatched = true;
-        providerUsed = 'Resend';
-        deliveryDetails = `Email dispatched via Resend: ${data?.id}`;
-        console.log(`[Email OTP] Sent via Resend to ${cleanEmail}: ${data?.id}`);
-      }
-    } catch (resendErr: any) {
-      console.error('[Email OTP] Resend exception:', resendErr?.message);
-    }
-  }
-
-  // 4. Try Nodemailer Gmail / SMTP (if configured)
+  // Try Nodemailer Gmail / SMTP (if configured)
   if (!emailDispatched) {
     const mailConfig = getMailTransporter();
     if (mailConfig.transporter) {
@@ -927,11 +941,6 @@ app.post('/api/auth/verify-email-otp', (req: Request, res: Response) => {
   const cleanEmail = email.trim().toLowerCase();
   const cleanOtp = String(otp).trim();
 
-  // Universal master test codes
-  if (['123456', '999999', '789012'].includes(cleanOtp)) {
-    return res.json({ success: true, message: 'Master OTP verified successfully!' });
-  }
-
   const stored = serverActiveOTPs.get(cleanEmail);
   if (!stored) {
     return res.status(400).json({ success: false, error: 'No OTP requested for this email address or it has expired.' });
@@ -943,7 +952,7 @@ app.post('/api/auth/verify-email-otp', (req: Request, res: Response) => {
   }
 
   if (stored.otp !== cleanOtp) {
-    return res.status(400).json({ success: false, error: `Invalid OTP code entered. Expected ${stored.otp}.` });
+    return res.status(400).json({ success: false, error: 'Invalid OTP code entered. Please check your email and try again.' });
   }
 
   serverActiveOTPs.delete(cleanEmail);

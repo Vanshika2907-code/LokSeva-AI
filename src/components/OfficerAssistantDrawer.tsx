@@ -56,7 +56,15 @@ export const OfficerAssistantDrawer: React.FC<OfficerAssistantDrawerProps> = ({
     try {
       const response = await askOfficerAssistantAPI({
         question: text,
-        officerDepartment: currentUser.department,
+        officerProfile: {
+          id: currentUser.id,
+          role: currentUser.role,
+          department: currentUser.department,
+          designation: currentUser.designation,
+          state: currentUser.state,
+          city: currentUser.city,
+          assignedState: currentUser.assignedState,
+        },
       });
 
       setMessages((prev) => [

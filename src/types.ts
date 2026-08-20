@@ -88,7 +88,7 @@ export interface ComplaintAttachment {
   id: string;
   complaintId: string;
   fileUrl: string;
-  fileType: 'image' | 'video' | 'document';
+  fileType: 'image' | 'audio' | 'video' | 'document';
   description?: string;
 }
 
@@ -119,6 +119,7 @@ export interface LocationData {
 
 export interface AIAnalysisResult {
   detectedLanguage: string;
+  transcription?: string;
   category: ComplaintCategory;
   department: DepartmentName;
   priority: ComplaintPriority;

@@ -19,6 +19,7 @@ import {
 import { Complaint, LanguageCode, UserProfile, DepartmentName } from '../types';
 import { DEPARTMENTS_LIST } from '../data/seedData';
 import { t, locNum, localizeDigitsInString, locCategory, locDepartment, locStatus, locPriority } from '../utils/localization';
+import { getOfficerScopedComplaints } from '../utils/officerScope';
 
 interface OfficerDashboardProps {
   complaints: Complaint[];
@@ -46,8 +47,7 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({
 
   const officerDepartment = currentUser.department || 'Public Works Department';
 
-  // STRICT DEPARTMENT SCOPING: Officer sees complaints for their department only!
-  const departmentComplaints = complaints.filter((c) => c.department === officerDepartment);
+  const departmentComplaints = getOfficerScopedComplaints(complaints, currentUser);
 
   // Filter complaints for officer view
   const filteredComplaints = departmentComplaints.filter((c) => {

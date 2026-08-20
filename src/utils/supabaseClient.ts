@@ -177,15 +177,6 @@ export async function verifyOTPService(
     };
   }
 
-  // Master Test Codes accepted for instant verification
-  const MASTER_CODES = ['123456', '999999', '789012', '000000', '111111'];
-  if (MASTER_CODES.includes(cleanOtp)) {
-    return {
-      success: true,
-      message: 'Universal Master OTP verified successfully!',
-    };
-  }
-
   // If email identifier, verify with server endpoint
   if (cleanId.includes('@')) {
     try {
