@@ -6,7 +6,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import nodemailer from 'nodemailer';
-import { Resend } from 'resend';
 import { GoogleGenAI, Type } from '@google/genai';
 import { INITIAL_COMPLAINTS, CURRENT_OFFICERS } from './src/data/seedData';
 import { Complaint, AIAnalysisResult, ComplaintStatus, ComplaintPriority, DepartmentName, ComplaintCategory } from './src/types';
@@ -38,26 +37,29 @@ const serverActiveOTPs = new Map<string, ServerStoredOTP>();
 function getMailTransporter() {
   const user = process.env.SMTP_USER || process.env.GMAIL_USER;
   const pass = (process.env.SMTP_PASS || process.env.SMTP_PASSWORD || process.env.GMAIL_APP_PASSWORD || process.env.GMAIL_APP_PASS || '').replace(/\s+/g, '');
-  const host = process.env.SMTP_HOST || (user?.includes('@gmail.com') ? 'smtp.gmail.com' : '');
-  const port = parseInt(process.env.SMTP_PORT || (host === 'smtp.gmail.com' ? '465' : '587'), 10);
+  const host = (process.env.SMTP_HOST || (user?.includes('@gmail.com') ? 'smtp.gmail.com' : '')).trim().toLowerCase();
+  const configuredPort = Number.parseInt(process.env.SMTP_PORT || '587', 10);
+  const port = Number.isInteger(configuredPort) && configuredPort > 0 ? configuredPort : 587;
+  const secure = process.env.SMTP_SECURE
+    ? process.env.SMTP_SECURE.toLowerCase() === 'true'
+    : port === 465;
+  const timeout = Number.parseInt(process.env.SMTP_CONNECTION_TIMEOUT_MS || '15000', 10);
+  const connectionTimeout = Number.isInteger(timeout) && timeout > 0 ? timeout : 15000;
 
-  if (user && pass) {
-    const isGmail = host === 'smtp.gmail.com' || user.includes('@gmail.com');
-    const transporter = isGmail
-      ? nodemailer.createTransport({
-          service: 'gmail',
-          auth: { user, pass },
-          connectionTimeout: 10000,
-          socketTimeout: 10000,
-        })
-      : nodemailer.createTransport({
-          host,
-          port,
-          secure: port === 465,
-          auth: { user, pass },
-          connectionTimeout: 10000,
-          socketTimeout: 10000,
-        });
+  if (user && pass && host) {
+    // Gmail and most SMTP providers use STARTTLS on 587. Port 465 is implicit
+    // TLS. The settings remain fully configurable for local or paid hosting.
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      requireTLS: !secure && port === 587,
+      auth: { user, pass },
+      tls: { minVersion: 'TLSv1.2' },
+      connectionTimeout,
+      greetingTimeout: connectionTimeout,
+      socketTimeout: connectionTimeout,
+    });
 
     return {
       transporter,
@@ -640,6 +642,12 @@ app.post('/api/auth/send-email-otp', async (req: Request, res: Response) => {
   let emailDispatched = false;
   let providerUsed = 'none';
   let deliveryDetails = '';
+  const configuredEmailProvider = (process.env.EMAIL_PROVIDER || 'auto').trim().toLowerCase();
+  const emailProvider = ['auto', 'resend', 'smtp'].includes(configuredEmailProvider)
+    ? configuredEmailProvider
+    : 'auto';
+  const resendOnly = emailProvider === 'resend';
+  const useResend = resendOnly || (emailProvider === 'auto' && Boolean(process.env.RESEND_API_KEY));
 
   const emailSubject = `🇮🇳 LokSeva Portal Verification Code: ${generatedOtp}`;
   const plainText = `Namaste ${name || 'Citizen'},\n\nYour 6-digit verification OTP to access the LokSeva Grievance Redressal Portal is: ${generatedOtp}\n\nThis OTP is valid for 10 minutes.\nNever share this code with anyone.\n\n— LokSeva Citizen Portal Team`;
@@ -700,8 +708,14 @@ app.post('/api/auth/send-email-otp', async (req: Request, res: Response) => {
     </html>
   `;
 
-  // 1. Try Resend API (if configured)
-  if (process.env.RESEND_API_KEY && !emailDispatched) {
+  // Render free web services cannot open outbound SMTP connections. Resend uses
+  // HTTPS, so it is the production provider selected in render.yaml.
+  if (useResend && !emailDispatched) {
+    if (!process.env.RESEND_API_KEY) {
+      deliveryDetails = 'RESEND_API_KEY is required when EMAIL_PROVIDER=resend.';
+    } else if (!process.env.EMAIL_FROM) {
+      deliveryDetails = 'EMAIL_FROM must be a sender address from a verified Resend domain.';
+    } else {
     try {
       const resendRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -727,14 +741,17 @@ app.post('/api/auth/send-email-otp', async (req: Request, res: Response) => {
       } else {
         const errBody = await resendRes.text();
         console.warn('[Email OTP] Resend API error response:', errBody);
+        deliveryDetails = `Resend API error: ${errBody || resendRes.statusText}`;
       }
     } catch (resendErr: any) {
       console.warn('[Email OTP] Resend fetch exception:', resendErr?.message);
+      deliveryDetails = `Resend API connection issue: ${resendErr?.message || 'Unknown error'}`;
+    }
     }
   }
 
   // 2. Try SendGrid API (if configured)
-  if (process.env.SENDGRID_API_KEY && !emailDispatched) {
+  if (!resendOnly && process.env.SENDGRID_API_KEY && !emailDispatched) {
     try {
       const sgRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
         method: 'POST',
@@ -771,7 +788,7 @@ app.post('/api/auth/send-email-otp', async (req: Request, res: Response) => {
   }
 
   // 3. Try EmailJS (HTTP-based, works everywhere)
-  if (!emailDispatched && process.env.EMAILJS_SERVICE_ID && process.env.EMAILJS_TEMPLATE_ID && process.env.EMAILJS_PUBLIC_KEY) {
+  if (!resendOnly && !emailDispatched && process.env.EMAILJS_SERVICE_ID && process.env.EMAILJS_TEMPLATE_ID && process.env.EMAILJS_PUBLIC_KEY) {
     try {
       const emailjs = await import('@emailjs/nodejs');
       const result = await emailjs.send(
@@ -796,32 +813,9 @@ app.post('/api/auth/send-email-otp', async (req: Request, res: Response) => {
     }
   }
 
-  // 4. Try Resend (HTTP-based, works on Render)
-  if (!emailDispatched && process.env.RESEND_API_KEY) {
-    try {
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      const { data, error } = await resend.emails.send({
-        from: 'LokSeva Portal <onboarding@resend.dev>',
-        to: [cleanEmail],
-        subject: emailSubject,
-        html: htmlContent,
-        text: plainText,
-      });
-      if (error) {
-        console.error('[Email OTP] Resend error:', error);
-      } else {
-        emailDispatched = true;
-        providerUsed = 'Resend';
-        deliveryDetails = `Email dispatched via Resend: ${data?.id}`;
-        console.log(`[Email OTP] Sent via Resend to ${cleanEmail}: ${data?.id}`);
-      }
-    } catch (resendErr: any) {
-      console.error('[Email OTP] Resend exception:', resendErr?.message);
-    }
-  }
-
-  // 4. Try Nodemailer Gmail / SMTP (if configured)
-  if (!emailDispatched) {
+  // SMTP remains available for local development and paid hosting. It is not
+  // used by Render because EMAIL_PROVIDER is explicitly set to "resend".
+  if (!resendOnly && !emailDispatched) {
     const mailConfig = getMailTransporter();
     if (mailConfig.transporter) {
       try {

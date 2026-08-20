@@ -14,13 +14,29 @@ the same public URL.
    `render.yaml`.
 2. Supply the prompted variables in Render's environment settings:
    `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `GEMINI_API_KEY`,
-   `GMAIL_USER`, `GMAIL_APP_PASSWORD`, and `EMAIL_FROM`.
+   `RESEND_API_KEY`, and `EMAIL_FROM`.
 3. In Supabase, add the Render public URL to the project's allowed redirect
    URLs if you use Supabase email authentication.
 
 `VITE_SUPABASE_ANON_KEY` is the browser-safe Supabase anon key. Never set a
-Supabase service-role key with a `VITE_` prefix. `GMAIL_APP_PASSWORD` must be a
-Google App Password, not the Gmail account password.
+Supabase service-role key with a `VITE_` prefix.
+
+### OTP email delivery
+
+Render free web services block outbound SMTP ports, including Gmail's 465 and
+587. The Render Blueprint therefore sets `EMAIL_PROVIDER=resend`, which sends
+OTP email through Resend's HTTPS API.
+
+In Render, configure:
+
+1. `RESEND_API_KEY` — a server-side Resend API key.
+2. `EMAIL_FROM` — for example, `LokSeva Portal <otp@your-verified-domain>`.
+   The domain must be verified in Resend before it can send to citizens.
+
+For local Gmail testing, keep `EMAIL_PROVIDER=smtp` with `GMAIL_USER` and
+`GMAIL_APP_PASSWORD` in your uncommitted `.env`. The SMTP defaults are
+`smtp.gmail.com`, port `587`, `SMTP_SECURE=false` (STARTTLS); port `465`
+requires `SMTP_SECURE=true`.
 
 This contains everything you need to run your app locally.
 
