@@ -90,10 +90,10 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 bg-amber-50 px-2.5 py-0.5 rounded border border-amber-200">
-                🏢 Department Officer Console
+                🏢 {t('officerWorkspaceTitle', currentLanguage)}
               </span>
               <span className="text-xs text-slate-500 font-medium">
-                Officer: <strong className="text-slate-800 font-bold">{currentUser?.name || 'Officer'}</strong> • Badge <strong className="font-mono text-amber-900">{currentUser?.badgeId || 'OFF-SEC-4019'}</strong>
+                {t('roleOfficer', currentLanguage)}: <strong className="text-slate-800 font-bold">{currentUser?.name || t('roleOfficer', currentLanguage)}</strong> • {t('assignedTo', currentLanguage)} <strong className="font-mono text-amber-900">{currentUser?.badgeId || 'OFF-SEC-4019'}</strong>
               </span>
             </div>
 
@@ -101,7 +101,7 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({
               {locDepartment(officerDepartment, currentLanguage)}
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl font-medium">
-              Department Queue: Exclusive sandbox for <strong>{officerDepartment}</strong>. Review field grievances, deploy repair units, log work progress, and notify citizens.
+              {t('assignedDept', currentLanguage)}: <strong>{locDepartment(officerDepartment, currentLanguage)}</strong>. {t('pendingActionQueue', currentLanguage)}.
             </p>
           </div>
 
@@ -123,9 +123,9 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({
           <div className="mt-5 pt-4 border-t border-slate-100 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">
-                Quick-Switch Department Sandbox:
+                {t('switchRole', currentLanguage)}:
               </span>
-              <span className="text-[11px] text-slate-500 font-medium">Testing Multi-Department Views</span>
+              <span className="text-[11px] text-slate-500 font-medium">{t('allDepartments', currentLanguage)}</span>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
@@ -153,15 +153,15 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 mt-6 pt-5 border-t border-slate-100">
           
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-            <div className="text-xs text-slate-500 font-bold mb-1">{t('statsTotal', currentLanguage)} Grievances</div>
+            <div className="text-xs text-slate-500 font-bold mb-1">{t('statsTotal', currentLanguage)}</div>
             <div className="text-xl sm:text-2xl font-extrabold text-[#0b2545]">{locNum(totalAssigned, currentLanguage)}</div>
-            <div className="text-[10px] text-slate-500 font-medium">In Department Queue</div>
+            <div className="text-[10px] text-slate-500 font-medium">{t('assignedDept', currentLanguage)}</div>
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-            <div className="text-xs text-blue-700 font-bold mb-1">Active Repairs</div>
+            <div className="text-xs text-blue-700 font-bold mb-1">{t('statsInProgress', currentLanguage)}</div>
             <div className="text-xl sm:text-2xl font-extrabold text-blue-600">{locNum(inProgressCount, currentLanguage)}</div>
-            <div className="text-[10px] text-slate-500 font-medium">Work in Progress</div>
+            <div className="text-[10px] text-slate-500 font-medium">{locStatus('In Progress', currentLanguage)}</div>
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
@@ -176,13 +176,13 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({
               <span>{locStatus('Escalated', currentLanguage)}</span>
             </div>
             <div className="text-xl sm:text-2xl font-extrabold text-amber-700">{locNum(overdueCount, currentLanguage)}</div>
-            <div className="text-[10px] text-amber-800/80 font-medium">{t('slaBreached', currentLanguage)}</div>
+            <div className="text-[10px] text-amber-800/80 font-medium">{t('slaBreachedBadge', currentLanguage)}</div>
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
             <div className="text-xs text-emerald-700 font-bold mb-1">{t('statsResolved', currentLanguage)}</div>
             <div className="text-xl sm:text-2xl font-extrabold text-emerald-600">{locNum(resolvedCount, currentLanguage)}</div>
-            <div className="text-[10px] text-slate-500 font-medium">Closed Cases</div>
+            <div className="text-[10px] text-slate-500 font-medium">{locStatus('Closed', currentLanguage)}</div>
           </div>
 
         </div>
@@ -236,7 +236,7 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({
                 : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
             }`}
           >
-            {t('slaBreached', currentLanguage)} Only
+            {t('slaBreachedBadge', currentLanguage)}
           </button>
         </div>
       </div>
