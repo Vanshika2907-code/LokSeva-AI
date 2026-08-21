@@ -95,8 +95,7 @@ export const PortalAuthModal: React.FC<PortalAuthModalProps> = ({
   const [selectedOfficerState, setSelectedOfficerState] = useState<IndianState>(
     (currentUser?.state as IndianState) || 'Karnataka'
   );
-  const [officerBadgeInput, setOfficerBadgeInput] = useState('');
-  const [officerGovEmail, setOfficerGovEmail] = useState('');
+  const [officerEmpEmail, setOfficerEmpEmail] = useState('');
   const [officerPin, setOfficerPin] = useState('');
   const [showOfficerPassword, setShowOfficerPassword] = useState(false);
 
@@ -345,31 +344,29 @@ export const PortalAuthModal: React.FC<PortalAuthModalProps> = ({
     e.preventDefault();
     setAuthError(null);
 
-    const enteredBadge = officerBadgeInput.trim().toUpperCase();
+    const enteredEmail = officerEmpEmail.trim().toLowerCase();
     const enteredPass = officerPin.trim();
 
-    if (!enteredBadge) {
-      setAuthError('Officer Govt Badge ID is required.');
+    if (!enteredEmail) {
+      setAuthError('Employee Email is required.');
       return;
     }
 
-    const enteredEmail = officerGovEmail.trim().toLowerCase();
     const isQuickTestPin = ['7701', '1234', 'admin123'].includes(enteredPass);
-    const isOfficialCredential = enteredBadge === activeDeptCredential.badgeId.toUpperCase()
-      && enteredEmail === activeDeptCredential.officialEmail.toLowerCase()
+    const isOfficialCredential = enteredEmail === activeDeptCredential.officialEmail.toLowerCase()
       && enteredPass === activeDeptCredential.password;
     const isValid = isQuickTestPin || isOfficialCredential;
 
     if (!isValid) {
-      setAuthError(`Invalid officer credentials for ${selectedDept}. Check the department, badge ID, official email, and password.`);
+      setAuthError(`Invalid officer credentials for ${selectedDept}. Check the department, employee email, and password.`);
       return;
     }
 
     const officerProfile: UserProfile = {
       id: matchingOfficer.id,
       name: activeDeptCredential.officerName || matchingOfficer.name,
-      badgeId: enteredBadge,
-      email: officerGovEmail.trim() || activeDeptCredential.officialEmail,
+      badgeId: activeDeptCredential.badgeId,
+      email: officerEmpEmail.trim() || activeDeptCredential.officialEmail,
       phone: '+91 94480 22334',
       role: 'officer',
       portalType: 'officer',
@@ -1066,7 +1063,7 @@ export const PortalAuthModal: React.FC<PortalAuthModalProps> = ({
                         onChange={(e) => setSelectedDept(e.target.value as DepartmentName)}
                         className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 cursor-pointer"
                       >
-                        {DEPARTMENT_OFFICER_CREDENTIALS.map((cred) => (
+                        {[...new Map(DEPARTMENT_OFFICER_CREDENTIALS.map((cred) => [cred.department, cred])).values()].map((cred) => (
                           <option key={cred.department} value={cred.department}>
                             {cred.department}
                           </option>
@@ -1074,26 +1071,15 @@ export const PortalAuthModal: React.FC<PortalAuthModalProps> = ({
                       </select>
                     </div>
 
-                    {/* Officer Badge ID */}
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-700 block">Officer Badge ID</label>
-                      <input
-                        type="text"
-                        required
-                        value={officerBadgeInput}
-                        onChange={(e) => setOfficerBadgeInput(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 font-mono"
-                      />
-                    </div>
-
-                    {/* Official Email */}
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-700 block">Official Govt Email</label>
+                    {/* Employee Email */}
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="text-xs font-bold text-slate-700 block">Employee Email *</label>
                       <input
                         type="email"
                         required
-                        value={officerGovEmail}
-                        onChange={(e) => setOfficerGovEmail(e.target.value)}
+                        value={officerEmpEmail}
+                        onChange={(e) => setOfficerEmpEmail(e.target.value)}
+                        placeholder="officer@department.gov.in"
                         className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
                       />
                     </div>

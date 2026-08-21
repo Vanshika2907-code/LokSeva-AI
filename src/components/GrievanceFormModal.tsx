@@ -55,11 +55,11 @@ const CONTROLLED_CATEGORIES: ComplaintCategory[] = [
 ];
 
 const PRESET_LOCATIONS = [
-  { address: 'Near BMSIT College Gate, Yelahanka Main Road, Bengaluru', ward: 'Ward 04 - Yelahanka', lat: 13.0991, lng: 77.5963 },
-  { address: '14th Main, Sector 4, HSR Layout, Bengaluru', ward: 'Ward 174 - HSR Layout', lat: 12.9121, lng: 77.6446 },
-  { address: '100ft Road, Near Corporation School, Indiranagar, Bengaluru', ward: 'Ward 80 - Dayananda Nagar', lat: 12.9784, lng: 77.6408 },
-  { address: '7th Cross Road, Koramangala 4th Block, Bengaluru', ward: 'Ward 151 - Koramangala', lat: 12.9352, lng: 77.6245 },
-  { address: '8th Cross Road, Malleshwaram, Bengaluru', ward: 'Ward 65 - Kadu Malleshwara', lat: 13.0031, lng: 77.5703 },
+  { address: 'Near BMSIT College Gate, Yelahanka Main Road, Bengaluru', ward: 'Ward 04 - Yelahanka', zone: 'Yelahanka Zone', lat: 13.0991, lng: 77.5963 },
+  { address: '14th Main, Sector 4, HSR Layout, Bengaluru', ward: 'Ward 174 - HSR Layout', zone: 'Bommanahalli Zone', lat: 12.9121, lng: 77.6446 },
+  { address: '100ft Road, Near Corporation School, Indiranagar, Bengaluru', ward: 'Ward 80 - Dayananda Nagar', zone: 'East Zone', lat: 12.9784, lng: 77.6408 },
+  { address: '7th Cross Road, Koramangala 4th Block, Bengaluru', ward: 'Ward 151 - Koramangala', zone: 'South Zone', lat: 12.9352, lng: 77.6245 },
+  { address: '8th Cross Road, Malleshwaram, Bengaluru', ward: 'Ward 65 - Kadu Malleshwara', zone: 'West Zone', lat: 13.0031, lng: 77.5703 },
 ];
 
 export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
@@ -344,6 +344,7 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
         longitude: selectedLocation.lng,
         address,
         ward: customWard.trim() || selectedLocation.ward,
+        zone: (selectedLocation as any).zone || '',
         state: (currentUser?.state as IndianState) || 'Karnataka',
       },
       aiSummary: finalSummary,
@@ -351,7 +352,7 @@ export const GrievanceFormModal: React.FC<GrievanceFormModalProps> = ({
       slaHours,
       slaDeadline: deadline,
       isSlaBreached: false,
-      assignedOfficerName: 'Assigned to Ward Junior Engineer',
+      assignedOfficerName: '',
       attachments: [
         ...(uploadedImageUrl ? [{
           id: 'att-image-' + Date.now(),

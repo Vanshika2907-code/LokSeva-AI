@@ -556,6 +556,31 @@ app.post('/api/complaints', (req: Request, res: Response) => {
   if (!newComplaint.id) {
     newComplaint.id = 'grv-' + Date.now();
   }
+
+  // Auto-assign to matching officer by department + zone/ward
+  const complaintWard = (newComplaint.location?.ward || '').toLowerCase();
+  const complaintZone = (newComplaint.location?.zone || '').toLowerCase();
+  const complaintCity = (newComplaint.location?.city || '').toLowerCase();
+  const complaintState = (newComplaint.location?.state || newComplaint.state || '').toLowerCase();
+
+  const matchedOfficer = CURRENT_OFFICERS.find((officer) => {
+    if (officer.department !== newComplaint.department) return false;
+    if (officer.state && complaintState && officer.state.toLowerCase() !== complaintState) return false;
+    if (officer.city && complaintCity && officer.city.toLowerCase() !== complaintCity) return false;
+    if (officer.ward || officer.zone) {
+      const officerZone = (officer.zone || officer.ward || '').toLowerCase();
+      const matchZone = complaintZone || complaintWard;
+      if (officerZone && matchZone && !matchZone.includes(officerZone) && !officerZone.includes(matchZone)) return false;
+    }
+    return true;
+  });
+
+  if (matchedOfficer) {
+    newComplaint.assignedOfficerId = matchedOfficer.id;
+    newComplaint.assignedOfficerName = matchedOfficer.name;
+    newComplaint.assignedOfficerDesignation = matchedOfficer.designation;
+  }
+
   complaintsDb.unshift(newComplaint);
   res.status(201).json({ complaint: newComplaint });
 });
@@ -1127,17 +1152,17 @@ app.post('/api/auth/officer-login', (req: Request, res: Response) => {
   }
 
   // Import credentials check
-  const DEPARTMENT_PASSWORDS: Record<string, { badgeId: string; email: string; pass: string; name: string; designation: string }> = {
-    'Public Works Department': { badgeId: 'PWD-KA-4019', email: 'rajesh.patil@pwd.karnataka.gov.in', pass: 'Pwd@Roads#9482', name: 'Rajesh Patil', designation: 'Assistant Executive Engineer (Roads & Bridges)' },
-    'Water Supply & Sewerage Board': { badgeId: 'BWSSB-KA-1182', email: 'vikram.reddy@bwssb.karnataka.gov.in', pass: 'Aqua#Clean!7291', name: 'Vikram Reddy', designation: 'Chief Water Works Inspector (BWSSB)' },
-    'Electricity Supply Corporation': { badgeId: 'DEL-ELEC-902', email: 'manoj.kumar@bescom.delhi.gov.in', pass: 'Volt@Power$8831', name: 'Manoj Kumar', designation: 'Superintendent Engineer (Power & Lighting)' },
-    'Solid Waste Management': { badgeId: 'BMC-SWM-8821', email: 'anjali.deshmukh@mcgm.gov.in', pass: 'Clean#Green*6104', name: 'Anjali Deshmukh', designation: 'Senior Sanitation Officer (BMC / SWM)' },
-    'Sanitation & Health Division': { badgeId: 'SAN-TN-5520', email: 'meenakshi.k@sanitation.tn.gov.in', pass: 'Sanit@Safe%4918', name: 'K. Meenakshi', designation: 'Divisional Health & Sanitation Officer' },
-    'Street Lighting Division': { badgeId: 'GCC-ELEC-441', email: 'balaji.raman@chennaicorp.gov.in', pass: 'Lumos#Glow^3852', name: 'Balaji Raman', designation: 'Assistant Engineer (Electrical & Smart Lighting)' },
-    'Metropolitan Transport Corporation': { badgeId: 'TSRTC-HYD-550', email: 'k.venkat@tsrtc.telangana.gov.in', pass: 'Transit@City!8274', name: 'K. Venkat', designation: 'Divisional Transport Officer (GHMC / TSRTC)' },
-    'Public Health & Disease Control': { badgeId: 'CMO-BBMP-771', email: 'sunita.rao@health.karnataka.gov.in', pass: 'Health#Care&5190', name: 'Dr. Sunita Rao', designation: 'Chief Medical Officer & Epidemiologist' },
-    'Municipal Stormwater Drainage': { badgeId: 'SWD-MH-3341', email: 'suresh.hegde@drainage.gov.in', pass: 'Drain#Flow!6739', name: 'Suresh Hegde', designation: 'Executive Engineer (Stormwater Division)' },
-    'Environmental Protection Cell': { badgeId: 'GPCB-AHM-102', email: 'pooja.bhatt@gpcb.gujarat.gov.in', pass: 'Eco#Shield$2095', name: 'Pooja Bhatt', designation: 'Environmental Control Officer (GPCB)' },
+  const DEPARTMENT_PASSWORDS: Record<string, { badgeId: string; email: string; pass: string; name: string; designation: string; state: string; city: string }> = {
+    'Public Works Department': { badgeId: 'PWD-KA-4019', email: 'rajesh.patil@pwd.karnataka.gov.in', pass: 'Pwd@Roads#9482', name: 'Rajesh Patil', designation: 'Assistant Executive Engineer (Roads & Bridges)', state: 'Karnataka', city: 'Bengaluru' },
+    'Water Supply & Sewerage Board': { badgeId: 'BWSSB-KA-1182', email: 'vikram.reddy@bwssb.karnataka.gov.in', pass: 'Aqua#Clean!7291', name: 'Vikram Reddy', designation: 'Chief Water Works Inspector (BWSSB)', state: 'Karnataka', city: 'Bengaluru' },
+    'Electricity Supply Corporation': { badgeId: 'BESCOM-KA-3001', email: 'nagaraj.suvarna@bescom.karnataka.gov.in', pass: 'Volt@Power#3001', name: 'Nagaraj Suvarna', designation: 'Superintendent Engineer (BESCOM)', state: 'Karnataka', city: 'Bengaluru' },
+    'Solid Waste Management': { badgeId: 'BBMP-SWM-3002', email: 'lakshmi.devi@bbmp.swm.karnataka.gov.in', pass: 'Clean#Green#3002', name: 'Lakshmi Devi', designation: 'Senior Sanitation Officer (BBMP SWM)', state: 'Karnataka', city: 'Bengaluru' },
+    'Sanitation & Health Division': { badgeId: 'SAN-KA-3003', email: 'prakash.moger@sanitation.karnataka.gov.in', pass: 'Sanit@Safe#3003', name: 'Dr. Prakash Moger', designation: 'Divisional Health & Sanitation Officer (BBMP)', state: 'Karnataka', city: 'Bengaluru' },
+    'Street Lighting Division': { badgeId: 'BESCOM-LT-3004', email: 'vinod.babu@bescom.karnataka.gov.in', pass: 'Lumos#Glow#3004', name: 'Vinod Babu', designation: 'Assistant Engineer (BESCOM Lighting)', state: 'Karnataka', city: 'Bengaluru' },
+    'Metropolitan Transport Corporation': { badgeId: 'BMTC-KA-3005', email: 'shivanna.goudar@bmTC.karnataka.gov.in', pass: 'Transit@City#3005', name: 'Shivanna Goudar', designation: 'Divisional Transport Officer (BMTC)', state: 'Karnataka', city: 'Bengaluru' },
+    'Public Health & Disease Control': { badgeId: 'CMO-BBMP-771', email: 'sunita.rao@health.karnataka.gov.in', pass: 'Health#Care&5190', name: 'Dr. Sunita Rao', designation: 'Chief Medical Officer & Epidemiologist', state: 'Karnataka', city: 'Bengaluru' },
+    'Municipal Stormwater Drainage': { badgeId: 'BBMP-SWD-3006', email: 'mohan.jogi@bbmp.gov.in', pass: 'Drain#Flow#3006', name: 'Mohan Kumar Jogi', designation: 'Executive Engineer (Stormwater Division - BBMP)', state: 'Karnataka', city: 'Bengaluru' },
+    'Environmental Protection Cell': { badgeId: 'KSPCB-KA-3007', email: 'savita.kulkarni@kspcb.karnataka.gov.in', pass: 'Eco#Shield#3007', name: 'Dr. Savita Kulkarni', designation: 'Environmental Control Officer (KSPCB)', state: 'Karnataka', city: 'Bengaluru' },
   };
 
   const cleanPass = String(password).trim();
@@ -1148,9 +1173,9 @@ app.post('/api/auth/officer-login', (req: Request, res: Response) => {
   const isMasterPin = ['7701', '1234', 'admin123', 'pwd123', 'pass123'].includes(cleanPass);
   const isDeptPass = deptCred && deptCred.pass === cleanPass;
 
-  // Also check if user entered matching badge or email password across any department
+  // Also check if user entered matching email or password across any department
   const anyDeptMatch = Object.values(DEPARTMENT_PASSWORDS).find(
-    (c) => c.pass === cleanPass || (badgeId && c.badgeId.toLowerCase() === String(badgeId).toLowerCase().trim() && c.pass === cleanPass)
+    (c) => c.pass === cleanPass || (email && c.email.toLowerCase() === String(email).toLowerCase().trim() && c.pass === cleanPass)
   );
 
   if (isMasterPin || isDeptPass || anyDeptMatch) {
@@ -1164,8 +1189,8 @@ app.post('/api/auth/officer-login', (req: Request, res: Response) => {
         email: email || matched.email,
         department: targetDept,
         designation: matched.designation,
-        state: state || 'Karnataka',
-        city: 'Bengaluru',
+        state: matched.state || state || 'Karnataka',
+        city: matched.city || 'Bengaluru',
         role: 'officer',
         portalType: 'officer',
       },

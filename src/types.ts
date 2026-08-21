@@ -195,6 +195,8 @@ export interface UserProfile {
   department?: DepartmentName;
   state?: IndianState;
   city?: string;
+  ward?: string;
+  zone?: string;
   designation?: string;
   badgeId?: string;
   preferredLanguage: LanguageCode;

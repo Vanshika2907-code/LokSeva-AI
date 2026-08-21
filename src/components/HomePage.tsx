@@ -105,13 +105,10 @@ export const HomePage: React.FC<HomePageProps> = ({
   // OFFICER AUTH STATE
   // ==========================================
   const [selectedDeptIndex, setSelectedDeptIndex] = useState(0);
-  const [officerBadgeId, setOfficerBadgeId] = useState('');
-  const [officerEmail, setOfficerEmail] = useState('');
+  const [officerEmpEmail, setOfficerEmpEmail] = useState('');
   const [officerPassword, setOfficerPassword] = useState('');
   const [showOfficerPassword, setShowOfficerPassword] = useState(false);
   const [officerDepartment, setOfficerDepartment] = useState<DepartmentName>(DEPARTMENT_OFFICER_CREDENTIALS[0].department);
-  const [officerState, setOfficerState] = useState<IndianState>(DEPARTMENT_OFFICER_CREDENTIALS[0].state);
-  const [officerCity, setOfficerCity] = useState(DEPARTMENT_OFFICER_CREDENTIALS[0].city);
 
   // ==========================================
   // ADMIN AUTH STATE
@@ -441,9 +438,9 @@ export const HomePage: React.FC<HomePageProps> = ({
     e.preventDefault();
     setAuthError(null);
 
-    const enteredBadge = officerBadgeId.trim().toUpperCase();
-    if (!enteredBadge) {
-      setAuthError('Please enter your Official Badge / Employee ID.');
+    const enteredEmail = officerEmpEmail.trim().toLowerCase();
+    if (!enteredEmail) {
+      setAuthError('Please enter your Employee Email.');
       return;
     }
 
@@ -452,36 +449,34 @@ export const HomePage: React.FC<HomePageProps> = ({
       return;
     }
 
-    const enteredEmail = officerEmail.trim().toLowerCase();
     const selectedCredential = DEPARTMENT_OFFICER_CREDENTIALS.find(
       (c) => c.department === officerDepartment
     );
     const matched = DEPARTMENT_OFFICER_CREDENTIALS.find(
       (c) => c.department === officerDepartment
-        && c.badgeId.toUpperCase() === enteredBadge
         && c.officialEmail.toLowerCase() === enteredEmail
         && c.password === officerPassword.trim()
     );
     const isQuickTestPin = ['7701', '1234', 'admin123'].includes(officerPassword.trim());
 
     const officerProfile: UserProfile = {
-      id: 'off-' + (matched?.badgeId || selectedCredential?.badgeId || enteredBadge),
+      id: 'off-' + (matched?.badgeId || selectedCredential?.badgeId || enteredEmail.split('@')[0]),
       name: matched?.officerName || selectedCredential?.officerName || 'Department Field Officer',
-      badgeId: enteredBadge,
-      email: officerEmail.trim() || matched?.officialEmail || `${enteredBadge.toLowerCase()}@gov.in`,
+      badgeId: matched?.badgeId || selectedCredential?.badgeId || '',
+      email: officerEmpEmail.trim() || matched?.officialEmail || enteredEmail,
       phone: '+91 94480 ' + Math.floor(10000 + Math.random() * 90000),
       role: 'officer',
       portalType: 'officer',
       department: officerDepartment || selectedCredential?.department || 'Public Works Department',
       designation: matched?.designation || selectedCredential?.designation || 'Assistant Executive Engineer',
-      state: matched?.state || selectedCredential?.state || officerState || 'Karnataka',
-      city: matched?.city || selectedCredential?.city || officerCity || 'Bengaluru',
+      state: matched?.state || selectedCredential?.state || 'Karnataka',
+      city: matched?.city || selectedCredential?.city || 'Bengaluru',
       preferredLanguage: currentLanguage,
       avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     };
 
     if (!matched && !isQuickTestPin) {
-      setAuthError(`Invalid officer credentials for ${officerDepartment}. Check the department, badge ID, official email, and password.`);
+      setAuthError(`Invalid officer credentials for ${officerDepartment}. Check the department, employee email, and password.`);
       return;
     }
 
@@ -1230,7 +1225,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     onChange={(e) => setOfficerDepartment(e.target.value as DepartmentName)}
                     className="w-full px-3 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 cursor-pointer"
                   >
-                    {DEPARTMENT_OFFICER_CREDENTIALS.map((c) => (
+                    {[...new Map(DEPARTMENT_OFFICER_CREDENTIALS.map((c) => [c.department, c])).values()].map((c) => (
                       <option key={c.department} value={c.department} className="bg-slate-900">
                         {c.department}
                       </option>
@@ -1238,37 +1233,19 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </select>
                 </div>
 
-                {/* Badge ID */}
-                <div className="space-y-1">
+                {/* Employee Email */}
+                <div className="space-y-1 sm:col-span-2">
                   <label className="text-xs font-bold text-slate-300">
-                    Officer Badge / Employee ID *
-                  </label>
-                  <div className="relative">
-                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="Enter your employee ID"
-                      value={officerBadgeId}
-                      onChange={(e) => setOfficerBadgeId(e.target.value)}
-                      className="w-full pl-10 pr-3.5 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-xs font-mono font-bold text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Official Gov Email */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-300">
-                    Official Email *
+                    Employee Email *
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="email"
                       required
-                      placeholder="Enter your official email"
-                      value={officerEmail}
-                      onChange={(e) => setOfficerEmail(e.target.value)}
+                      placeholder="officer@department.gov.in"
+                      value={officerEmpEmail}
+                      onChange={(e) => setOfficerEmpEmail(e.target.value)}
                       className="w-full pl-10 pr-3.5 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
                     />
                   </div>
@@ -1302,36 +1279,6 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
                 </div>
 
-                {/* Jurisdiction State */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-300">
-                    Jurisdiction State
-                  </label>
-                  <select
-                    value={officerState}
-                    onChange={(e) => setOfficerState(e.target.value as IndianState)}
-                    className="w-full px-3 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 cursor-pointer"
-                  >
-                    {INDIAN_STATES.map((s) => (
-                      <option key={s.code} value={s.code} className="bg-slate-900">
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* City */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-300">
-                    Posting City / Ward
-                  </label>
-                  <input
-                    type="text"
-                    value={officerCity}
-                    onChange={(e) => setOfficerCity(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
-                  />
-                </div>
               </div>
 
               {/* Submit */}

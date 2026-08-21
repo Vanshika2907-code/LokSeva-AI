@@ -291,6 +291,16 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({
                         <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                         <span>{c.location.address}</span>
                       </span>
+                      {c.location.ward && (
+                        <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded font-medium text-[10px] border border-indigo-200">
+                          📍 {c.location.ward}
+                        </span>
+                      )}
+                      {c.location.zone && (
+                        <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded font-medium text-[10px] border border-emerald-200">
+                          🏢 {c.location.zone}
+                        </span>
+                      )}
                       <span>• Citizen: <strong className="text-slate-700">{c.userName}</strong></span>
                       <span>• State: <strong className="text-slate-700">{c.state}</strong></span>
                     </div>
