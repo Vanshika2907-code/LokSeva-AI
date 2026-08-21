@@ -212,6 +212,12 @@ export const App: React.FC = () => {
   const officerVisibleComplaints = currentRole === 'officer'
     ? getOfficerScopedComplaints(complaints, currentUser)
     : complaints;
+  const citizenVisibleComplaints = currentRole === 'citizen'
+    ? complaints.filter((complaint) => complaint.userId === currentUser.id)
+    : complaints;
+  const visibleComplaintsForHeader = currentRole === 'citizen'
+    ? citizenVisibleComplaints
+    : complaints;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col selection:bg-blue-100 selection:text-blue-900 font-sans antialiased">
@@ -228,8 +234,8 @@ export const App: React.FC = () => {
         onOpenLanguageModal={() => setIsLanguageModalOpen(true)}
         onSignOut={handleSignOut}
         selectedState={selectedState}
-        pendingCount={complaints.filter((c) => c.status === 'Submitted' || c.status === 'Under Review' || c.status === 'Assigned').length}
-        slaBreachCount={complaints.filter((c) => c.isEscalated || c.isSlaBreached).length}
+        pendingCount={visibleComplaintsForHeader.filter((c) => c.status === 'Submitted' || c.status === 'Under Review' || c.status === 'Assigned').length}
+        slaBreachCount={visibleComplaintsForHeader.filter((c) => c.isEscalated || c.isSlaBreached).length}
       />
 
       {/* Main Workspace */}
@@ -247,7 +253,7 @@ export const App: React.FC = () => {
           <>
             {activeTab === 'citizen' && (
               <CitizenDashboard
-                complaints={complaints}
+                complaints={citizenVisibleComplaints}
                 currentUser={currentUser}
                 currentLanguage={currentLanguage}
                 onOpenNewGrievance={() => setIsNewGrievanceOpen(true)}
@@ -260,7 +266,7 @@ export const App: React.FC = () => {
 
             {activeTab === 'map' && (
               <GrievanceMapView
-                complaints={complaints}
+                complaints={citizenVisibleComplaints}
                 currentLanguage={currentLanguage}
                 onSelectComplaint={(c) => setSelectedComplaintDetail(c)}
               />
