@@ -45,11 +45,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
-  const [filterMode, setFilterMode] = useState<'all' | 'my'>('all');
+  const [filterMode, setFilterMode] = useState<'my'>('my');
 
   // Filter complaints
   const filteredComplaints = complaints.filter((c) => {
-    if (filterMode === 'my' && currentUser && c.userId !== currentUser.id && c.userName !== currentUser.name) return false;
     if (selectedCategory !== 'All' && c.category !== selectedCategory) return false;
     if (selectedStatus !== 'All' && c.status !== selectedStatus) return false;
     if (searchQuery.trim()) {
@@ -72,7 +71,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
 
   // Calculate Metrics
   const totalCount = complaints.length;
-  const myCount = complaints.filter((c) => currentUser && (c.userId === currentUser.id || c.userName === currentUser.name)).length;
+  const myCount = complaints.length;
   const pendingCount = complaints.filter((c) => c.status === 'Submitted' || c.status === 'Under Review' || c.status === 'Assigned').length;
   const inProgressCount = complaints.filter((c) => c.status === 'In Progress' || c.status === 'Escalated').length;
   const resolvedCount = complaints.filter((c) => c.status === 'Resolved').length;
@@ -135,22 +134,13 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           </div>
 
           <div 
-            onClick={() => {
-              setFilterMode('all');
-              const el = document.getElementById('complaints-filter-bar');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className={`p-4 rounded-xl border transition-all cursor-pointer group ${
-              filterMode === 'all'
-                ? 'bg-emerald-50/70 border-emerald-400 ring-2 ring-emerald-300/30'
-                : 'bg-slate-50/80 hover:bg-emerald-50/50 border-slate-200/80 hover:border-emerald-300'
-            }`}
+            className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-300 transition-all group"
           >
             <div className="w-8 h-8 rounded-lg bg-emerald-100/70 text-emerald-800 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform">
               <ShieldCheck className="w-4 h-4" />
             </div>
-            <h3 className="text-xs font-bold text-slate-900 group-hover:text-emerald-900">{t('allPublicGrievances', currentLanguage)}</h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">{t('communityHotspots', currentLanguage)}</p>
+            <h3 className="text-xs font-bold text-slate-900">{t('citizenPortal', currentLanguage)}</h3>
+            <p className="text-[11px] text-slate-500 mt-0.5">Private account workspace</p>
           </div>
 
           <div 
@@ -227,18 +217,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           {/* Mode Switcher */}
           <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
             <button
-              onClick={() => setFilterMode('all')}
-              className={`px-3 py-1.5 rounded-md font-bold text-xs transition-all cursor-pointer ${
-                filterMode === 'all' ? 'bg-[#0b2545] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {t('allPublicGrievances', currentLanguage)}
-            </button>
-            <button
-              onClick={() => setFilterMode('my')}
-              className={`px-3 py-1.5 rounded-md font-bold text-xs transition-all cursor-pointer ${
-                filterMode === 'my' ? 'bg-[#0b2545] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className="px-3 py-1.5 rounded-md font-bold text-xs bg-[#0b2545] text-white shadow-xs cursor-default"
             >
               {t('myGrievances', currentLanguage)} ({locNum(myCount, currentLanguage)})
             </button>
